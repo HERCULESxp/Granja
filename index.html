@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Granja • Controle de Caixa</title>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--text:#17202a;--muted:#6b7280;--line:#e5e7eb;--primary:#176b4d;--primary2:#0f5139;--danger:#b42318;--warn:#a15c00;--shadow:0 8px 24px rgba(0,0,0,.06)}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}.app{display:flex;min-height:100vh}
+aside{width:245px;background:#123b2d;color:#fff;padding:22px 15px;position:fixed;left:0;top:0;bottom:0;z-index:5}
+.logo{font-size:21px;font-weight:800;padding:8px 12px 25px}.logo span{opacity:.65;font-weight:500;font-size:13px;display:block;margin-top:4px}
+nav button{display:block;width:100%;text-align:left;background:transparent;color:#d9eee5;padding:13px 14px;border-radius:10px;margin:4px 0;font-weight:600}
+nav button.active,nav button:hover{background:#1d5b45;color:#fff}
+main{margin-left:245px;width:calc(100% - 245px);padding:28px;max-width:1500px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:22px}.top h1{margin:0;font-size:28px}.top p{margin:5px 0 0;color:var(--muted)}
+.section{display:none}.section.active{display:block}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+.kpi .label{font-size:13px;color:var(--muted);font-weight:650}.kpi .value{font-size:26px;font-weight:800;margin-top:8px}.green{color:#087443}.red{color:#b42318}.blue{color:#175cd3}.orange{color:#b54708}
+.row{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}.field{grid-column:span 3}.field.wide{grid-column:span 6}.field.full{grid-column:1/-1}
+label{font-size:13px;font-weight:700;display:block;margin-bottom:6px}input,select,textarea{width:100%;border:1px solid #d0d5dd;border-radius:9px;padding:10px 11px;background:#fff;outline:none}input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(23,107,77,.1)}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}.btn{padding:10px 14px;border-radius:9px;font-weight:750;background:var(--primary);color:#fff}.btn:hover{background:var(--primary2)}.btn.secondary{background:#eef2f0;color:#174735}.btn.danger{background:#fff0ef;color:var(--danger)}.btn.small{padding:7px 9px;font-size:12px}
+.panel-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.panel-title h2{font-size:18px;margin:0}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line);font-size:13px}th{color:var(--muted);font-size:12px}td.num,th.num{text-align:right}
+.empty{text-align:center;color:var(--muted);padding:28px}
+.two{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-top:16px}
+.bars{display:flex;align-items:flex-end;gap:8px;height:220px;padding:15px 5px 28px}.barbox{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;min-width:0}.bar{width:min(28px,70%);background:#5b9b80;border-radius:5px 5px 0 0;min-height:2px}.barlabel{font-size:10px;color:var(--muted);margin-top:6px;white-space:nowrap}.barvalue{font-size:9px;color:var(--muted);margin-bottom:3px}
+.badge{display:inline-block;padding:4px 7px;border-radius:20px;font-size:11px;font-weight:750}.badge.g{background:#e7f6ee;color:#087443}.badge.r{background:#fff0ef;color:#b42318}
+.monthbar{display:flex;gap:10px;align-items:end;margin-bottom:16px}.monthbar input{max-width:170px}
+.toast{position:fixed;right:20px;bottom:20px;background:#17202a;color:#fff;padding:12px 15px;border-radius:10px;box-shadow:var(--shadow);display:none;z-index:20}.toast.show{display:block}
+.notice{background:#fff8e8;border:1px solid #f4d58a;padding:12px;border-radius:10px;color:#7a4b00;font-size:13px;margin-bottom:16px}
+.mobile-nav{display:none}
+@media(max-width:900px){aside{display:none}.mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:#123b2d;z-index:10;overflow:auto}.mobile-nav button{flex:1;min-width:90px;padding:12px 7px;background:transparent;color:#d9eee5;font-size:11px;font-weight:700}.mobile-nav button.active{background:#1d5b45}main{margin:0;width:100%;padding:18px 14px 82px}.grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}.field{grid-column:span 6}.field.wide{grid-column:span 12}}
+@media(max-width:520px){.top{align-items:flex-start}.top h1{font-size:23px}.grid{grid-template-columns:1fr 1fr;gap:10px}.card{padding:14px}.kpi .value{font-size:20px}.row{gap:10px}.field,.field.wide{grid-column:1/-1}.table-wrap{overflow:auto}table{min-width:620px}.bars{gap:3px}
+.report-category {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0 !important;
+    table-layout: fixed;
+}
+.report-category th,
+.report-category td {
+    white-space: normal;
+    overflow-wrap: break-word;
+}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<aside>
+  <div class="logo">🐔 GRANJA<span>Controle de caixa e produção</span></div>
+  <nav id="nav"></nav>
+</aside>
+<main>
+  <div class="top">
+    <div><h1 id="pageTitle">Dashboard</h1><p id="pageSub">Visão geral da sua granja</p></div>
+    <button class="btn secondary" onclick="exportData()">💾 Fazer backup</button>
+  </div>
+
+  <section id="dashboard" class="section active">
+    <div class="monthbar"><label style="margin:0">Mês de análise<br><input type="month" id="dashMonth" onchange="renderDashboard()"></label></div>
+    <div class="grid">
+      <div class="card kpi"><div class="label">GASTOS</div><div class="value red" id="kGastos">R$ 0,00</div></div>
+      <div class="card kpi"><div class="label">FATURAMENTO</div><div class="value green" id="kFat">R$ 0,00</div></div>
+      <div class="card kpi"><div class="label">LUCRO</div><div class="value" id="kLucro">R$ 0,00</div></div>
+      <div class="card kpi"><div class="label">OVOS EM ESTOQUE</div><div class="value orange" id="kEstoque">0</div></div>
+      <div class="card kpi"><div class="label">OVOS PRODUZIDOS</div><div class="value blue" id="kProd">0</div></div>
+      <div class="card kpi"><div class="label">OVOS VENDIDOS</div><div class="value blue" id="kVendOvos">0</div></div>
+      <div class="card kpi"><div class="label">VENDAS</div><div class="value green" id="kVendas">0</div></div>
+      <div class="card kpi"><div class="label">MÉDIA POR VENDA</div><div class="value" id="kTicket">R$ 0,00</div></div>
+    </div>
+    <div class="two">
+      <div class="card"><div class="panel-title"><h2>Produção diária de ovos</h2></div><div id="chart" class="bars"></div></div>
+      <div class="card"><div class="panel-title"><h2>Resumo do mês</h2></div><div id="monthSummary"></div></div>
+    </div>
+  </section>
+
+  <section id="gastos" class="section">
+    <div class="card">
+      <div class="panel-title"><h2>Adicionar gasto</h2></div>
+      <form onsubmit="addExpense(event)"><div class="row">
+        <div class="field"><label>Data</label><input type="date" id="gDate" required></div>
+        <div class="field"><label>Categoria</label><select id="gCat"><option>Ração</option><option>Medicamentos</option><option>Energia</option><option>Água</option><option>Manutenção</option><option>Animais</option><option>Outros</option></select></div>
+        <div class="field wide"><label>Descrição</label><input id="gDesc" placeholder="Ex.: 2 sacos de ração"></div>
+        <div class="field"><label>Quantidade</label><input id="gQty" type="number" step="0.01" min="0" placeholder="Ex.: 2"></div>
+        <div class="field"><label>Valor total (R$)</label><input id="gValue" type="number" step="0.01" min="0" required placeholder="0,00"></div>
+      </div><div class="actions"><button class="btn">Adicionar gasto</button></div></form>
+    </div>
+    <div class="card" style="margin-top:16px"><div class="panel-title"><h2>Histórico de gastos</h2><input style="max-width:180px" type="month" id="expenseMonth" onchange="renderExpenses()"></div><div class="table-wrap"><table><thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th>Qtd.</th><th class="num">Valor</th><th></th></tr></thead><tbody id="expenseTable"></tbody></table></div></div>
+  </section>
+
+  <section id="producao" class="section">
+    <div class="card">
+      <div class="panel-title"><h2>Registrar produção de ovos</h2></div>
+      <form onsubmit="addProduction(event)"><div class="row">
+        <div class="field"><label>Data</label><input type="date" id="pDate" required></div>
+        <div class="field"><label>Quantidade de ovos</label><input id="pQty" type="number" min="1" step="1" required placeholder="Ex.: 120"></div>
+        <div class="field wide"><label>Observação</label><input id="pObs" placeholder="Opcional"></div>
+      </div><div class="actions"><button class="btn">Registrar produção</button></div></form>
+    </div>
+    <div class="card" style="margin-top:16px"><div class="panel-title"><h2>Produção registrada</h2><input style="max-width:180px" type="month" id="productionMonth" onchange="renderProduction()"></div><div class="table-wrap"><table><thead><tr><th>Data</th><th class="num">Ovos</th><th>Observação</th><th></th></tr></thead><tbody id="productionTable"></tbody></table></div></div>
+  </section>
+
+  <section id="vendas" class="section">
+    <div class="card">
+      <div class="panel-title"><h2>Registrar venda</h2></div>
+      <div class="notice">O estoque é calculado automaticamente: <b>ovos produzidos − ovos vendidos</b>. Não é possível registrar uma venda maior que o estoque disponível.</div>
+      <form onsubmit="addSale(event)"><div class="row">
+        <div class="field"><label>Data</label><input type="date" id="vDate" required></div>
+        <div class="field"><label>Quantidade de ovos</label><input id="vQty" type="number" min="1" step="1" required placeholder="Ex.: 60"></div>
+        <div class="field"><label>Valor da venda (R$)</label><input id="vValue" type="number" min="0" step="0.01" required placeholder="0,00"></div>
+        <div class="field wide"><label>Cliente / observação</label><input id="vObs" placeholder="Opcional"></div>
+      </div><div class="actions"><button class="btn">Registrar venda</button></div></form>
+    </div>
+    <div class="card" style="margin-top:16px"><div class="panel-title"><h2>Histórico de vendas</h2><input style="max-width:180px" type="month" id="salesMonth" onchange="renderSales()"></div><div class="table-wrap"><table><thead><tr><th>Data</th><th class="num">Ovos</th><th class="num">Valor</th><th>Cliente / Obs.</th><th></th></tr></thead><tbody id="salesTable"></tbody></table></div></div>
+  </section>
+
+  <section id="relatorios" class="section">
+    <div class="card">
+      <div class="panel-title"><h2>Relatório mensal</h2><input style="max-width:180px" type="month" id="reportMonth" onchange="renderReports()"></div>
+      <div id="reportBox"></div>
+    </div>
+  </section>
+
+  <section id="config" class="section">
+    <div class="card">
+      <div class="panel-title"><h2>Backup e dados</h2></div>
+      <p style="color:var(--muted)">Os dados ficam salvos neste navegador. Faça backups regularmente para não perder seus registros.</p>
+      <div class="actions"><button class="btn" onclick="exportData()">⬇ Exportar backup</button><button class="btn secondary" onclick="document.getElementById('importFile').click()">⬆ Importar backup</button><input id="importFile" type="file" accept=".json" hidden onchange="importData(event)"><button class="btn danger" onclick="clearData()">🗑 Apagar todos os dados</button></div>
+    </div>
+    <div class="card" style="margin-top:16px"><h2 style="font-size:18px">Como funciona</h2><ul style="line-height:1.9;color:var(--muted)"><li>Registre todos os ovos produzidos em <b>Produção</b>.</li><li>Registre cada saída em <b>Vendas</b>; o estoque é atualizado automaticamente.</li><li>Registre ração e demais despesas em <b>Gastos</b>.</li><li>O <b>lucro</b> do dashboard é faturamento menos gastos.</li><li>O sistema funciona sem internet.</li></ul></div>
+  </section>
+</main>
+</div>
+<div class="mobile-nav" id="mobileNav"></div><div class="toast" id="toast"></div>
+
+<script>
+const KEY='granja_caixa_v1';
+let data=JSON.parse(localStorage.getItem(KEY)||'{"expenses":[],"production":[],"sales":[]}');
+const menus=[['dashboard','📊','Dashboard'],['gastos','🌽','Gastos'],['producao','🥚','Produção'],['vendas','💰','Vendas'],['relatorios','📋','Relatórios'],['config','⚙️','Dados/Backup']];
+function save(){localStorage.setItem(KEY,JSON.stringify(data))}
+function brl(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
+function dateBR(s){if(!s)return'';let [y,m,d]=s.split('-');return `${d}/${m}/${y}`}
+function today(){return new Date().toISOString().slice(0,10)}
+function monthNow(){return today().slice(0,7)}
+function setDefaults(){['gDate','pDate','vDate'].forEach(id=>document.getElementById(id).value=today());['dashMonth','expenseMonth','productionMonth','salesMonth','reportMonth'].forEach(id=>document.getElementById(id).value=monthNow())}
+function nav(){let html=menus.map(x=>`<button data-page="${x[0]}" onclick="showPage('${x[0]}')">${x[1]} ${x[2]}</button>`).join('');document.getElementById('nav').innerHTML=html;document.getElementById('mobileNav').innerHTML=html;markNav()}
+function markNav(){let p=document.querySelector('.section.active')?.id;document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===p))}
+function showPage(id){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');let m=menus.find(x=>x[0]===id);document.getElementById('pageTitle').textContent=m[2];document.getElementById('pageSub').textContent=id==='dashboard'?'Visão geral da sua granja':id==='config'?'Backup e armazenamento local':'Gerencie seus registros';markNav();if(id==='dashboard')renderDashboard();if(id==='gastos')renderExpenses();if(id==='producao')renderProduction();if(id==='vendas')renderSales();if(id==='relatorios')renderReports();window.scrollTo(0,0)}
+function toast(msg){let t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
+function addExpense(e){e.preventDefault();data.expenses.push({id:Date.now(),date:gDate.value,cat:gCat.value,desc:gDesc.value.trim(),qty:Number(gQty.value||0),value:Number(gValue.value)});save();e.target.reset();gDate.value=today();toast('Gasto adicionado!');renderExpenses();renderDashboard()}
+function addProduction(e){e.preventDefault();data.production.push({id:Date.now(),date:pDate.value,qty:Number(pQty.value),obs:pObs.value.trim()});save();e.target.reset();pDate.value=today();toast('Produção registrada!');renderProduction();renderDashboard()}
+function stock(){return data.production.reduce((a,x)=>a+x.qty,0)-data.sales.reduce((a,x)=>a+x.qty,0)}
+function addSale(e){e.preventDefault();let q=Number(vQty.value),available=stock();if(q>available){toast(`Estoque insuficiente. Disponível: ${available} ovos.`);return}data.sales.push({id:Date.now(),date:vDate.value,qty:q,value:Number(vValue.value),obs:vObs.value.trim()});save();e.target.reset();vDate.value=today();toast('Venda registrada e estoque atualizado!');renderSales();renderDashboard()}
+function removeItem(type,id){if(!confirm('Excluir este registro?'))return;data[type]=data[type].filter(x=>x.id!==id);save();toast('Registro excluído.');renderDashboard();if(type==='expenses')renderExpenses();if(type==='production')renderProduction();if(type==='sales')renderSales();if(document.getElementById('relatorios').classList.contains('active'))renderReports()}
+function inMonth(date,m){return !m||date.startsWith(m)}
+function renderExpenses(){let m=expenseMonth.value;let arr=data.expenses.filter(x=>inMonth(x.date,m)).sort((a,b)=>b.date.localeCompare(a.date));expenseTable.innerHTML=arr.length?arr.map(x=>`<tr><td>${dateBR(x.date)}</td><td><span class="badge">${x.cat}</span></td><td>${esc(x.desc)||'—'}</td><td>${x.qty||'—'}</td><td class="num">${brl(x.value)}</td><td><button class="btn small danger" onclick="removeItem('expenses',${x.id})">Excluir</button></td></tr>`).join(''):`<tr><td colspan="6" class="empty">Nenhum gasto neste mês.</td></tr>`}
+function renderProduction(){let m=productionMonth.value;let arr=data.production.filter(x=>inMonth(x.date,m)).sort((a,b)=>b.date.localeCompare(a.date));productionTable.innerHTML=arr.length?arr.map(x=>`<tr><td>${dateBR(x.date)}</td><td class="num"><b>${x.qty}</b></td><td>${esc(x.obs)||'—'}</td><td><button class="btn small danger" onclick="removeItem('production',${x.id})">Excluir</button></td></tr>`).join(''):`<tr><td colspan="4" class="empty">Nenhuma produção neste mês.</td></tr>`}
+function renderSales(){let m=salesMonth.value;let arr=data.sales.filter(x=>inMonth(x.date,m)).sort((a,b)=>b.date.localeCompare(a.date));salesTable.innerHTML=arr.length?arr.map(x=>`<tr><td>${dateBR(x.date)}</td><td class="num"><b>${x.qty}</b></td><td class="num">${brl(x.value)}</td><td>${esc(x.obs)||'—'}</td><td><button class="btn small danger" onclick="removeItem('sales',${x.id})">Excluir</button></td></tr>`).join(''):`<tr><td colspan="5" class="empty">Nenhuma venda neste mês.</td></tr>`}
+function renderDashboard(){let m=dashMonth.value||monthNow();let ex=data.expenses.filter(x=>inMonth(x.date,m)),pr=data.production.filter(x=>inMonth(x.date,m)),sa=data.sales.filter(x=>inMonth(x.date,m));let gastos=ex.reduce((a,x)=>a+x.value,0),fat=sa.reduce((a,x)=>a+x.value,0),prod=pr.reduce((a,x)=>a+x.qty,0),vend=sa.reduce((a,x)=>a+x.qty,0);kGastos.textContent=brl(gastos);kFat.textContent=brl(fat);kLucro.textContent=brl(fat-gastos);kLucro.className='value '+(fat-gastos>=0?'green':'red');kEstoque.textContent=stock().toLocaleString('pt-BR');kProd.textContent=prod.toLocaleString('pt-BR');kVendOvos.textContent=vend.toLocaleString('pt-BR');kVendas.textContent=sa.length;kTicket.textContent=brl(sa.length?fat/sa.length:0);drawChart(m,pr);monthSummary.innerHTML=`<div style="display:grid;gap:10px"><div><b>Produção:</b> ${prod} ovos</div><div><b>Vendas:</b> ${sa.length} (${vend} ovos)</div><div><b>Gastos:</b> ${brl(gastos)}</div><div><b>Faturamento:</b> ${brl(fat)}</div><div><b>Lucro:</b> <span class="${fat-gastos>=0?'green':'red'}"><b>${brl(fat-gastos)}</b></span></div><div><b>Estoque atual:</b> ${stock()} ovos</div></div>`}
+function drawChart(m,pr){let days=new Date(Number(m.slice(0,4)),Number(m.slice(5,7)),0).getDate(),map={};pr.forEach(x=>map[x.date]=(map[x.date]||0)+x.qty);let max=Math.max(1,...Object.values(map));chart.innerHTML=Array.from({length:days},(_,i)=>{let d=String(i+1).padStart(2,'0'),key=m+'-'+d,v=map[key]||0;return `<div class="barbox"><div class="barvalue">${v||''}</div><div class="bar" title="${d}/${m.slice(5)}: ${v} ovos" style="height:${v?Math.max(3,v/max*170):2}px"></div><div class="barlabel">${i%2===0?d:''}</div></div>`}).join('')}
+function renderReports(){let m=reportMonth.value||monthNow(),ex=data.expenses.filter(x=>inMonth(x.date,m)),pr=data.production.filter(x=>inMonth(x.date,m)),sa=data.sales.filter(x=>inMonth(x.date,m));let gastos=ex.reduce((a,x)=>a+x.value,0),fat=sa.reduce((a,x)=>a+x.value,0),prod=pr.reduce((a,x)=>a+x.qty,0),vend=sa.reduce((a,x)=>a+x.qty,0);let cats={};ex.forEach(x=>cats[x.cat]=(cats[x.cat]||0)+x.value);reportBox.innerHTML=`<div class="grid"><div class="card kpi"><div class="label">PRODUÇÃO</div><div class="value blue">${prod} ovos</div></div><div class="card kpi"><div class="label">VENDIDOS</div><div class="value blue">${vend} ovos</div></div><div class="card kpi"><div class="label">FATURAMENTO</div><div class="value green">${brl(fat)}</div></div><div class="card kpi"><div class="label">LUCRO</div><div class="value ${fat-gastos>=0?'green':'red'}">${brl(fat-gastos)}</div></div></div><div class="two" style="margin-top:16px"><div><h3>Gastos por categoria</h3><table class="report-category" ><thead><tr><th>Categoria</th><th class="num">Valor</th></tr></thead><tbody>${Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(x=>`<tr><td>${x[0]}</td><td class="num">${brl(x[1])}</td></tr>`).join('')||'<tr><td colspan="2" class="empty">Sem gastos.</td></tr>'}</tbody></table></div><div><h3>Indicadores</h3><p>Quantidade de vendas: <b>${sa.length}</b></p><p>Ticket médio: <b>${brl(sa.length?fat/sa.length:0)}</b></p><p>Preço médio por ovo vendido: <b>${brl(vend?fat/vend:0)}</b></p><p>Estoque atual: <b>${stock()} ovos</b></p></div></div>`}
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function exportData(){let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`backup-granja-${today()}.json`;a.click();URL.revokeObjectURL(a.href);toast('Backup exportado!')}
+function importData(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.expenses||!x.production||!x.sales)throw 0;data=x;save();renderAll();toast('Backup importado com sucesso!')}catch{alert('Arquivo de backup inválido.')}};r.readAsText(f);e.target.value=''}
+function clearData(){if(confirm('ATENÇÃO: isso apagará todos os gastos, produções e vendas deste navegador. Deseja continuar?')){data={expenses:[],production:[],sales:[]};save();renderAll();toast('Todos os dados foram apagados.')}}
+function renderAll(){renderDashboard();renderExpenses();renderProduction();renderSales();renderReports()}
+nav();setDefaults();renderAll();
+</script>
+</body>
+</html>
