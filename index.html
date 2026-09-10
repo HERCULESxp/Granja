@@ -2,7 +2,16 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+<meta name="theme-color" content="#123b2d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Granja">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+
 <title>Granja • Controle de Caixa</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--text:#17202a;--muted:#6b7280;--line:#e5e7eb;--primary:#176b4d;--primary2:#0f5139;--danger:#b42318;--warn:#a15c00;--shadow:0 8px 24px rgba(0,0,0,.06)}
@@ -167,6 +176,9 @@ function importData(e){let f=e.target.files[0];if(!f)return;let r=new FileReader
 function clearData(){if(confirm('ATENÇÃO: isso apagará todos os gastos, produções e vendas deste navegador. Deseja continuar?')){data={expenses:[],production:[],sales:[]};save();renderAll();toast('Todos os dados foram apagados.')}}
 function renderAll(){renderDashboard();renderExpenses();renderProduction();renderSales();renderReports()}
 nav();setDefaults();renderAll();
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
+}
 </script>
 </body>
 </html>
