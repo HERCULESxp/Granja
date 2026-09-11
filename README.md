@@ -36,6 +36,10 @@ Recomenda-se realizar um backup pelo menos **uma vez por mês**.
 
 O aplicativo é uma **PWA (Progressive Web App)**. Não é necessário baixar pela Play Store ou App Store.
 
+Acecesse: https://herculesxp.github.io/Granja/
+
+e instale o PWA no seu celular, siga o exemplos abaixo
+
 ## 🤖 Android
 
 A instalação pode ser feita pelo **Google Chrome**.
