@@ -174,16 +174,18 @@ function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 function exportData(){let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`backup-granja-${today()}.json`;a.click();URL.revokeObjectURL(a.href);toast('Backup exportado!')}
 function importData(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.expenses||!x.production||!x.sales)throw 0;data=x;save();renderAll();toast('Backup importado com sucesso!')}catch{alert('Arquivo de backup inválido.')}};r.readAsText(f);e.target.value=''}
 function clearData(){if(confirm('ATENÇÃO: isso apagará todos os gastos, produções e vendas deste navegador. Deseja continuar?')){data={expenses:[],production:[],sales:[]};save();renderAll();toast('Todos os dados foram apagados.')}}
-function renderAll(){renderDashboard();renderExpenses();renderProduction();renderSales();renderReports()}
-nav();setDefaults();renderAll();
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
-}
-//navegar entre as abas ao arrastar
+// Navegação entre abas por deslize
 let touchStartX = 0;
 let touchEndX = 0;
 
-const tabs = ['dashboard', 'expenses', 'production', 'sales', 'reports', 'backup'];
+const swipePages = [
+    'dashboard',
+    'gastos',
+    'producao',
+    'vendas',
+    'relatorios',
+    'config'
+];
 
 document.addEventListener('touchstart', function(e) {
     touchStartX = e.changedTouches[0].screenX;
@@ -197,36 +199,52 @@ document.addEventListener('touchend', function(e) {
 function handleSwipe() {
     const difference = touchEndX - touchStartX;
 
-    // Ignora movimentos pequenos
-    if (Math.abs(difference) < 80) return;
+    // Movimento muito pequeno não conta como deslize
+    if (Math.abs(difference) < 70) return;
 
-    // Não navega se estiver digitando em um campo
-    if (document.activeElement &&
-        ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+    // Não mudar de aba enquanto estiver digitando
+    const activeElement = document.activeElement;
+
+    if (
+        activeElement &&
+        (
+            activeElement.tagName === 'INPUT' ||
+            activeElement.tagName === 'TEXTAREA' ||
+            activeElement.tagName === 'SELECT'
+        )
+    ) {
         return;
     }
 
-    const activeTab = document.querySelector('.tab.active');
-    if (!activeTab) return;
+    // Descobre qual seção está aberta
+    const currentSection = document.querySelector('.section.active');
 
-    const currentIndex = tabs.indexOf(activeTab.dataset.tab);
+    if (!currentSection) return;
+
+    const currentIndex = swipePages.indexOf(currentSection.id);
+
     if (currentIndex === -1) return;
 
     let nextIndex;
 
     if (difference < 0) {
-        // Deslizou para a esquerda
-        nextIndex = Math.min(currentIndex + 1, tabs.length - 1);
+        // Deslizou para a esquerda → próxima aba
+        nextIndex = currentIndex + 1;
     } else {
-        // Deslizou para a direita
-        nextIndex = Math.max(currentIndex - 1, 0);
+        // Deslizou para a direita → aba anterior
+        nextIndex = currentIndex - 1;
     }
 
-    const nextTab = document.querySelector(
-        `.tab[data-tab="${tabs[nextIndex]}"]`
-    );
+    // Não passar dos limites
+    if (nextIndex < 0 || nextIndex >= swipePages.length) return;
 
-    if (nextTab) nextTab.click();
+    // Usa a própria função de navegação do seu sistema
+    showPage(swipePages[nextIndex]);
+}
+function renderAll(){renderDashboard();renderExpenses();renderProduction();renderSales();renderReports()}
+nav();setDefaults();renderAll();
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
 }
 </script>
 
