@@ -15,13 +15,13 @@
 <title>Granja • Controle de Caixa</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--text:#17202a;--muted:#6b7280;--line:#e5e7eb;--primary:#176b4d;--primary2:#0f5139;--danger:#b42318;--warn:#a15c00;--shadow:0 8px 24px rgba(0,0,0,.06)}
-*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+*{box-sizing:border-box}body{ overscroll-behavior-x: none; margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
 button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}.app{display:flex;min-height:100vh}
 aside{width:245px;background:#123b2d;color:#fff;padding:22px 15px;position:fixed;left:0;top:0;bottom:0;z-index:5}
 .logo{font-size:21px;font-weight:800;padding:8px 12px 25px}.logo span{opacity:.65;font-weight:500;font-size:13px;display:block;margin-top:4px}
 nav button{display:block;width:100%;text-align:left;background:transparent;color:#d9eee5;padding:13px 14px;border-radius:10px;margin:4px 0;font-weight:600}
 nav button.active,nav button:hover{background:#1d5b45;color:#fff}
-main{margin-left:245px;width:calc(100% - 245px);padding:28px;max-width:1500px}
+main{touch-action: pan-y; margin-left:245px;width:calc(100% - 245px);padding:28px;max-width:1500px}
 .top{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:22px}.top h1{margin:0;font-size:28px}.top p{margin:5px 0 0;color:var(--muted)}
 .section{display:none}.section.active{display:block}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
@@ -179,6 +179,56 @@ nav();setDefaults();renderAll();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
 }
+//navegar entre as abas ao arrastar
+let touchStartX = 0;
+let touchEndX = 0;
+
+const tabs = ['dashboard', 'expenses', 'production', 'sales', 'reports', 'backup'];
+
+document.addEventListener('touchstart', function(e) {
+    touchStartX = e.changedTouches[0].screenX;
+}, { passive: true });
+
+document.addEventListener('touchend', function(e) {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipe();
+}, { passive: true });
+
+function handleSwipe() {
+    const difference = touchEndX - touchStartX;
+
+    // Ignora movimentos pequenos
+    if (Math.abs(difference) < 80) return;
+
+    // Não navega se estiver digitando em um campo
+    if (document.activeElement &&
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+        return;
+    }
+
+    const activeTab = document.querySelector('.tab.active');
+    if (!activeTab) return;
+
+    const currentIndex = tabs.indexOf(activeTab.dataset.tab);
+    if (currentIndex === -1) return;
+
+    let nextIndex;
+
+    if (difference < 0) {
+        // Deslizou para a esquerda
+        nextIndex = Math.min(currentIndex + 1, tabs.length - 1);
+    } else {
+        // Deslizou para a direita
+        nextIndex = Math.max(currentIndex - 1, 0);
+    }
+
+    const nextTab = document.querySelector(
+        `.tab[data-tab="${tabs[nextIndex]}"]`
+    );
+
+    if (nextTab) nextTab.click();
+}
 </script>
+
 </body>
 </html>
