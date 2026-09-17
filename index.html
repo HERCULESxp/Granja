@@ -14,6 +14,66 @@
 
 <title>Granja • Controle de Caixa</title>
 <style>
+/* Animação de troca de abas */
+.section.swipe-out-left {
+    animation: swipeOutLeft .18s ease-out forwards;
+}
+
+.section.swipe-out-right {
+    animation: swipeOutRight .18s ease-out forwards;
+}
+
+.section.swipe-in-right {
+    animation: swipeInRight .22s ease-out;
+}
+
+.section.swipe-in-left {
+    animation: swipeInLeft .22s ease-out;
+}
+
+@keyframes swipeOutLeft {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(-35px);
+        opacity: 0;
+    }
+}
+
+@keyframes swipeOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(35px);
+        opacity: 0;
+    }
+}
+
+@keyframes swipeInRight {
+    from {
+        transform: translateX(35px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes swipeInLeft {
+    from {
+        transform: translateX(-35px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
 :root{--bg:#f4f6f8;--card:#fff;--text:#17202a;--muted:#6b7280;--line:#e5e7eb;--primary:#176b4d;--primary2:#0f5139;--danger:#b42318;--warn:#a15c00;--shadow:0 8px 24px rgba(0,0,0,.06)}
 *{box-sizing:border-box}body{ overscroll-behavior-x: none; margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
 button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}.app{display:flex;min-height:100vh}
@@ -272,7 +332,44 @@ document.addEventListener('touchend', function(e) {
     }
 
     if (nextIndex >= 0 && nextIndex < pages.length) {
+
+    const currentPage = document.querySelector('.section.active');
+
+    // Direção do movimento
+    const goingLeft = differenceX < 0;
+
+    // Anima a página atual saindo
+    if (currentPage) {
+        currentPage.classList.add(
+            goingLeft ? 'swipe-out-left' : 'swipe-out-right'
+        );
+    }
+
+    setTimeout(() => {
+
+        // Troca realmente de página
         showPage(pages[nextIndex]);
+
+        // Pega a nova página
+        const newPage = document.querySelector('.section.active');
+
+        if (newPage) {
+
+            // Animação de entrada
+            newPage.classList.add(
+                goingLeft ? 'swipe-in-right' : 'swipe-in-left'
+            );
+
+            // Remove as classes depois da animação
+            setTimeout(() => {
+                newPage.classList.remove(
+                    'swipe-in-right',
+                    'swipe-in-left'
+                );
+            }, 250);
+        }
+
+    }, 180);
     }
 
     swipeAllowed = false;
