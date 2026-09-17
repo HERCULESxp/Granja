@@ -185,7 +185,27 @@ function today(){return new Date().toISOString().slice(0,10)}
 function monthNow(){return today().slice(0,7)}
 function setDefaults(){['gDate','pDate','vDate'].forEach(id=>document.getElementById(id).value=today());['dashMonth','expenseMonth','productionMonth','salesMonth','reportMonth'].forEach(id=>document.getElementById(id).value=monthNow())}
 function nav(){let html=menus.map(x=>`<button data-page="${x[0]}" onclick="showPage('${x[0]}')">${x[1]} ${x[2]}</button>`).join('');document.getElementById('nav').innerHTML=html;document.getElementById('mobileNav').innerHTML=html;markNav()}
-function markNav(){let p=document.querySelector('.section.active')?.id;document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===p))}
+function markNav(){
+    let p = document.querySelector('.section.active')?.id;
+
+    document.querySelectorAll('[data-page]').forEach(b =>
+        b.classList.toggle('active', b.dataset.page === p)
+    );
+
+    // Faz a barra inferior acompanhar a aba ativa
+    const mobileNav = document.getElementById('mobileNav');
+    const activeButton = mobileNav?.querySelector(
+        `[data-page="${p}"]`
+    );
+
+    if (mobileNav && activeButton) {
+        activeButton.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+            inline: 'center'
+        });
+    }
+}
 function showPage(id){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');let m=menus.find(x=>x[0]===id);document.getElementById('pageTitle').textContent=m[2];document.getElementById('pageSub').textContent=id==='dashboard'?'Visão geral da sua granja':id==='config'?'Backup e armazenamento local':'Gerencie seus registros';markNav();if(id==='dashboard')renderDashboard();if(id==='gastos')renderExpenses();if(id==='producao')renderProduction();if(id==='vendas')renderSales();if(id==='relatorios')renderReports();window.scrollTo(0,0)}
 function toast(msg){let t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
 function addExpense(e){e.preventDefault();data.expenses.push({id:Date.now(),date:gDate.value,cat:gCat.value,desc:gDesc.value.trim(),qty:Number(gQty.value||0),value:Number(gValue.value)});save();e.target.reset();gDate.value=today();toast('Gasto adicionado!');renderExpenses();renderDashboard()}
