@@ -176,45 +176,116 @@ function importData(e){let f=e.target.files[0];if(!f)return;let r=new FileReader
 function clearData(){if(confirm('ATENÇÃO: isso apagará todos os gastos, produções e vendas deste navegador. Deseja continuar?')){data={expenses:[],production:[],sales:[]};save();renderAll();toast('Todos os dados foram apagados.')}}
 // Navegação entre abas por deslize
 let touchStartX = 0;
-let touchEndX = 0;
-
-const swipePages = [
-    'dashboard',
-    'gastos',
-    'producao',
-    'vendas',
-    'relatorios',
-    'config'
-];
+let touchStartY = 0;
+let swipeAllowed = false;
 
 document.addEventListener('touchstart', function(e) {
-    touchStartX = e.changedTouches[0].screenX;
-}, { passive: true });
 
-document.addEventListener('touchend', function(e) {
-    touchEndX = e.changedTouches[0].screenX;
-    handleSwipe();
-}, { passive: true });
+    const target = e.target;
 
-function handleSwipe() {
-    const difference = touchEndX - touchStartX;
-
-    // Movimento muito pequeno não conta como deslize
-    if (Math.abs(difference) < 70) return;
-
-    // Não mudar de aba enquanto estiver digitando
-    const activeElement = document.activeElement;
-
+    // Não iniciar navegação em campos
     if (
-        activeElement &&
-        (
-            activeElement.tagName === 'INPUT' ||
-            activeElement.tagName === 'TEXTAREA' ||
-            activeElement.tagName === 'SELECT'
-        )
+        target.closest('input') ||
+        target.closest('textarea') ||
+        target.closest('select') ||
+        target.closest('button')
     ) {
+        swipeAllowed = false;
         return;
     }
+
+    // Não iniciar navegação dentro da barra de abas inferior
+    if (target.closest('.mobile-nav')) {
+        swipeAllowed = false;
+        return;
+    }
+
+    // Não iniciar navegação dentro de tabelas
+    if (target.closest('.table-wrap')) {
+        swipeAllowed = false;
+        return;
+    }
+
+    // Não iniciar navegação em qualquer elemento
+    // que tenha rolagem horizontal
+    let scrollElement = target.closest('[style*="overflow"]');
+
+    if (scrollElement) {
+        swipeAllowed = false;
+        return;
+    }
+
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+
+    swipeAllowed = true;
+
+}, { passive: true });
+
+
+document.addEventListener('touchend', function(e) {
+
+    if (!swipeAllowed) return;
+
+    const touchEndX = e.changedTouches[0].screenX;
+    const touchEndY = e.changedTouches[0].screenY;
+
+    const differenceX = touchEndX - touchStartX;
+    const differenceY = touchEndY - touchStartY;
+
+    // Se o movimento vertical for maior que o horizontal,
+    // é uma rolagem normal da página
+    if (Math.abs(differenceY) > Math.abs(differenceX)) {
+        swipeAllowed = false;
+        return;
+    }
+
+    // Precisa deslizar pelo menos 80px
+    if (Math.abs(differenceX) < 80) {
+        swipeAllowed = false;
+        return;
+    }
+
+    const currentSection = document.querySelector('.section.active');
+
+    if (!currentSection) {
+        swipeAllowed = false;
+        return;
+    }
+
+    const pages = [
+        'dashboard',
+        'gastos',
+        'producao',
+        'vendas',
+        'relatorios',
+        'config'
+    ];
+
+    const currentIndex = pages.indexOf(currentSection.id);
+
+    if (currentIndex === -1) {
+        swipeAllowed = false;
+        return;
+    }
+
+    let nextIndex;
+
+    if (differenceX < 0) {
+        // Deslizou para a esquerda
+        nextIndex = currentIndex + 1;
+    } else {
+        // Deslizou para a direita
+        nextIndex = currentIndex - 1;
+    }
+
+    if (nextIndex >= 0 && nextIndex < pages.length) {
+        showPage(pages[nextIndex]);
+    }
+
+    swipeAllowed = false;
+
+});
 
     // Descobre qual seção está aberta
     const currentSection = document.querySelector('.section.active');
