@@ -178,43 +178,35 @@ function clearData(){if(confirm('ATENÇÃO: isso apagará todos os gastos, produ
 let touchStartX = 0;
 let touchStartY = 0;
 let swipeAllowed = false;
+let horizontalScrollElement = null;
 
 document.addEventListener('touchstart', function(e) {
 
     const target = e.target;
 
-    // Não iniciar navegação em campos
-    if (
-        target.closest('input') ||
-        target.closest('textarea') ||
-        target.closest('select') ||
-        target.closest('button')
-    ) {
+    horizontalScrollElement = null;
+
+    // Procura o elemento que possui rolagem horizontal
+    let el = target;
+
+    while (el && el !== document.body) {
+
+        if (el.scrollWidth > el.clientWidth) {
+            horizontalScrollElement = el;
+            break;
+        }
+
+        el = el.parentElement;
+    }
+
+    // Se encontrou um elemento com rolagem horizontal,
+    // a rolagem dele tem prioridade.
+    if (horizontalScrollElement) {
         swipeAllowed = false;
         return;
     }
 
-    // Não iniciar navegação dentro da barra de abas inferior
-    if (target.closest('.mobile-nav')) {
-        swipeAllowed = false;
-        return;
-    }
-
-    // Não iniciar navegação dentro de tabelas
-    if (target.closest('.table-wrap')) {
-        swipeAllowed = false;
-        return;
-    }
-
-    // Não iniciar navegação em qualquer elemento
-    // que tenha rolagem horizontal
-    let scrollElement = target.closest('[style*="overflow"]');
-
-    if (scrollElement) {
-        swipeAllowed = false;
-        return;
-    }
-
+    // Caso contrário, o gesto pode trocar de aba
     touchStartX = e.changedTouches[0].screenX;
     touchStartY = e.changedTouches[0].screenY;
 
@@ -233,19 +225,19 @@ document.addEventListener('touchend', function(e) {
     const differenceX = touchEndX - touchStartX;
     const differenceY = touchEndY - touchStartY;
 
-    // Se o movimento vertical for maior que o horizontal,
-    // é uma rolagem normal da página
+    // Movimento vertical = rolagem normal da página
     if (Math.abs(differenceY) > Math.abs(differenceX)) {
         swipeAllowed = false;
         return;
     }
 
-    // Precisa deslizar pelo menos 80px
+    // Movimento horizontal mínimo
     if (Math.abs(differenceX) < 80) {
         swipeAllowed = false;
         return;
     }
 
+    // Descobre a aba que está aberta
     const currentSection = document.querySelector('.section.active');
 
     if (!currentSection) {
@@ -272,10 +264,10 @@ document.addEventListener('touchend', function(e) {
     let nextIndex;
 
     if (differenceX < 0) {
-        // Deslizou para a esquerda
+        // Esquerda → próxima aba
         nextIndex = currentIndex + 1;
     } else {
-        // Deslizou para a direita
+        // Direita → aba anterior
         nextIndex = currentIndex - 1;
     }
 
