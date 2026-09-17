@@ -286,32 +286,6 @@ document.addEventListener('touchend', function(e) {
     swipeAllowed = false;
 
 });
-
-    // Descobre qual seção está aberta
-    const currentSection = document.querySelector('.section.active');
-
-    if (!currentSection) return;
-
-    const currentIndex = swipePages.indexOf(currentSection.id);
-
-    if (currentIndex === -1) return;
-
-    let nextIndex;
-
-    if (difference < 0) {
-        // Deslizou para a esquerda → próxima aba
-        nextIndex = currentIndex + 1;
-    } else {
-        // Deslizou para a direita → aba anterior
-        nextIndex = currentIndex - 1;
-    }
-
-    // Não passar dos limites
-    if (nextIndex < 0 || nextIndex >= swipePages.length) return;
-
-    // Usa a própria função de navegação do seu sistema
-    showPage(swipePages[nextIndex]);
-}
 function renderAll(){renderDashboard();renderExpenses();renderProduction();renderSales();renderReports()}
 nav();setDefaults();renderAll();
 if ('serviceWorker' in navigator) {
