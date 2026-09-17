@@ -14,6 +14,106 @@
 
 <title>Granja • Controle de Caixa</title>
 <style>
+/* ==========================================
+   POPUP DE ATUALIZAÇÃO
+   ========================================== */
+
+.update-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 99999;
+
+    padding: 12px;
+
+    transform: translateY(-120%);
+    transition: transform .3s ease;
+
+    pointer-events: none;
+}
+
+.update-popup.show {
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.update-popup-content {
+    position: relative;
+
+    max-width: 600px;
+    margin: 0 auto;
+
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    padding: 14px 45px 14px 14px;
+
+    background: #ffffff;
+
+    border-radius: 14px;
+
+    box-shadow:
+        0 8px 30px rgba(0,0,0,.18);
+
+    border: 1px solid rgba(0,0,0,.08);
+}
+
+.update-icon {
+    font-size: 25px;
+    flex-shrink: 0;
+}
+
+.update-text {
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.update-text strong {
+    font-size: 14px;
+}
+
+.update-text span {
+    font-size: 12px;
+    opacity: .7;
+}
+
+.update-button {
+    border: 0;
+    border-radius: 9px;
+
+    padding: 9px 12px;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    white-space: nowrap;
+}
+
+.update-close {
+    position: absolute;
+
+    top: 5px;
+    right: 7px;
+
+    width: 25px;
+    height: 25px;
+
+    border: 0;
+    background: transparent;
+
+    font-size: 22px;
+
+    cursor: pointer;
+
+    opacity: .6;
+}
 /* Animação de troca de abas */
 .section.swipe-in-right {
     animation: swipeInRight .22s ease-out;
@@ -86,6 +186,26 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px
 </style>
 </head>
 <body>
+    <div id="updatePopup" class="update-popup">
+    <div class="update-popup-content">
+
+        <div class="update-icon">🔄</div>
+
+        <div class="update-text">
+            <strong>Nova atualização disponível</strong>
+            <span>Uma nova versão do aplicativo está pronta.</span>
+        </div>
+
+        <button id="updateButton" class="update-button">
+            Atualizar agora
+        </button>
+
+        <button id="closeUpdate" class="update-close">
+            ×
+        </button>
+
+    </div>
+    </div>
 <div class="app">
 <aside>
   <div class="logo">🐔 GRANJA<span>Controle de caixa e produção</span></div>
@@ -367,6 +487,61 @@ nav();setDefaults();renderAll();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
 }
+// ==========================================
+// ATUALIZAÇÃO DO PWA
+// ==========================================
+
+const updatePopup = document.getElementById('updatePopup');
+const updateButton = document.getElementById('updateButton');
+const closeUpdate = document.getElementById('closeUpdate');
+
+let updateAvailable = false;
+
+
+// Recebe mensagens do Service Worker
+if ('serviceWorker' in navigator) {
+
+    navigator.serviceWorker.addEventListener('message', event => {
+
+        if (!event.data) return;
+
+        if (event.data.type === 'APP_UPDATED') {
+
+            updateAvailable = true;
+
+            updatePopup.classList.add('show');
+
+        }
+
+    });
+
+}
+
+
+// ==========================================
+// ATUALIZAR AGORA
+// ==========================================
+
+updateButton.addEventListener('click', () => {
+
+    if (!updateAvailable) return;
+
+    // Recarrega a página.
+    // O novo index.html já está no cache.
+    window.location.reload();
+
+});
+
+
+// ==========================================
+// FECHAR AVISO
+// ==========================================
+
+closeUpdate.addEventListener('click', () => {
+
+    updatePopup.classList.remove('show');
+
+});
 </script>
 
 </body>
