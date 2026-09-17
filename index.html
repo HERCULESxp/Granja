@@ -15,42 +15,12 @@
 <title>Granja • Controle de Caixa</title>
 <style>
 /* Animação de troca de abas */
-.section.swipe-out-left {
-    animation: swipeOutLeft .18s ease-out forwards;
-}
-
-.section.swipe-out-right {
-    animation: swipeOutRight .18s ease-out forwards;
-}
-
 .section.swipe-in-right {
     animation: swipeInRight .22s ease-out;
 }
 
 .section.swipe-in-left {
     animation: swipeInLeft .22s ease-out;
-}
-
-@keyframes swipeOutLeft {
-    from {
-        transform: translateX(0);
-        opacity: 1;
-    }
-    to {
-        transform: translateX(-35px);
-        opacity: 0;
-    }
-}
-
-@keyframes swipeOutRight {
-    from {
-        transform: translateX(0);
-        opacity: 1;
-    }
-    to {
-        transform: translateX(35px);
-        opacity: 0;
-    }
 }
 
 @keyframes swipeInRight {
@@ -333,43 +303,40 @@ document.addEventListener('touchend', function(e) {
 
     if (nextIndex >= 0 && nextIndex < pages.length) {
 
-    const currentPage = document.querySelector('.section.active');
-
-    // Direção do movimento
     const goingLeft = differenceX < 0;
 
-    // Anima a página atual saindo
-    if (currentPage) {
-        currentPage.classList.add(
-            goingLeft ? 'swipe-out-left' : 'swipe-out-right'
+    // Troca a aba
+    showPage(pages[nextIndex]);
+
+    // Pega a nova aba
+    const newPage = document.querySelector('.section.active');
+
+    if (newPage) {
+
+        // Garante que não existam animações antigas
+        newPage.classList.remove(
+            'swipe-in-right',
+            'swipe-in-left'
         );
-    }
 
-    setTimeout(() => {
+        // Força o navegador a reiniciar a animação
+        void newPage.offsetWidth;
 
-        // Troca realmente de página
-        showPage(pages[nextIndex]);
+        // Escolhe a direção
+        newPage.classList.add(
+            goingLeft
+                ? 'swipe-in-right'
+                : 'swipe-in-left'
+        );
 
-        // Pega a nova página
-        const newPage = document.querySelector('.section.active');
-
-        if (newPage) {
-
-            // Animação de entrada
-            newPage.classList.add(
-                goingLeft ? 'swipe-in-right' : 'swipe-in-left'
+        // Limpa a classe depois
+        setTimeout(() => {
+            newPage.classList.remove(
+                'swipe-in-right',
+                'swipe-in-left'
             );
-
-            // Remove as classes depois da animação
-            setTimeout(() => {
-                newPage.classList.remove(
-                    'swipe-in-right',
-                    'swipe-in-left'
-                );
-            }, 250);
-        }
-
-    }, 180);
+        }, 250);
+    }
     }
 
     swipeAllowed = false;
