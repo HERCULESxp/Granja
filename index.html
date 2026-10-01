@@ -551,6 +551,7 @@ function renderDashboard(){
   let fat=sa.reduce((a,x)=>a+x.value,0);
   let prod=pr.reduce((a,x)=>a+x.qty,0);
   let vend=sa.filter(x=>!x.type||x.type==='ovos').reduce((a,x)=>a+x.qty,0);
+ let   vendAnimais=sa.filter(x=>x.type==='animais').length;
 
   chartTitle.textContent = period === 'anual'
   ? 'Produção mensal'
@@ -594,7 +595,7 @@ function renderDashboard(){
     monthSummary.innerHTML=`
       <div style="display:grid;gap:10px">
         <div><b>Produção:</b> ${prod} ovos</div>
-        <div><b>Vendas:</b> ${sa.length} (${vend} ovos)</div>
+        <div><b>Vendas:</b> ${sa.length} (${vend} ovos) (${vendAnimais} animais)</div>
         <div><b>Gastos:</b> ${brl(gastos)}</div>
         <div><b>Faturamento:</b> ${brl(fat)}</div>
         <div><b>Resultado do mês:</b>
