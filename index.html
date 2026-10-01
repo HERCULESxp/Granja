@@ -259,11 +259,10 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px
     Mês<br>
     <input type="month" id="dashMonth" onchange="renderDashboard()">
   </label>
-
-  <label id="dashYearField" style="margin:0;display:none">
-    Ano<br>
-    <input type="number" id="dashYear" min="2000" max="2100" onchange="renderDashboard()">
-  </label>
+<label id="dashYearField" style="margin:0;display:none">
+  Ano<br>
+  <select id="dashYear" onchange="renderDashboard()"></select>
+</label>
      </div>
    <div class="grid">
       <div class="card kpi"><div class="label">GASTOS</div><div class="value red" id="kGastos">R$ 0,00</div></div>
@@ -389,6 +388,18 @@ function today(){
   return `${year}-${month}-${day}`;
 }
 function monthNow(){return today().slice(0,7)}
+function setupYears(){
+  const select=document.getElementById('dashYear');
+  const currentYear=new Date().getFullYear();
+
+  select.innerHTML='';
+
+  for(let year=currentYear-5; year<=currentYear+5; year++){
+    select.innerHTML+=`<option value="${year}">${year}</option>`;
+  }
+
+  select.value=currentYear;
+}
 function setDefaults(){
   ['gDate','pDate','vDate'].forEach(id=>document.getElementById(id).value=today());
 
