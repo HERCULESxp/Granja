@@ -324,7 +324,16 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px
 </div>
 <div class="actions"><button class="btn">Registrar venda</button></div></form>
     </div>
-    <div class="card" style="margin-top:16px"><div class="panel-title"><h2>Histórico de vendas</h2><input style="max-width:180px" type="month" id="salesMonth" onchange="renderSales()"></div><div class="table-wrap"><table><thead><tr><th>Data</th><th class="num">Ovos</th><th class="num">Valor</th><th>Cliente / Obs.</th><th></th></tr></thead><tbody id="salesTable"></tbody></table></div></div>
+    <div class="card" style="margin-top:16px"><div class="panel-title"><h2>Histórico de vendas</h2><input style="max-width:180px" type="month" id="salesMonth" onchange="renderSales()"></div><div class="table-wrap"><table>
+  <thead>
+    <tr>
+      <th>Data</th>
+      <th>Item</th>
+      <th class="num">Valor</th>
+      <th>Cliente / Obs.</th>
+      <th></th>
+    </tr>
+  </thead><tbody id="salesTable"></tbody></table></div></div>
   </section>
 
   <section id="relatorios" class="section">
