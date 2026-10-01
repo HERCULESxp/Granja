@@ -485,7 +485,7 @@ function addProduction(e){
   renderDashboard();
 }
 function stock(){
-  return data.production.reduce((a,x)=>a+x.qty,0)
+  return data.production.reduce((a,x)=>a+(x.qty-(x.broken||0)),0)
     - data.sales.filter(x=>!x.type || x.type==='ovos').reduce((a,x)=>a+x.qty,0);
 }
 function updateSaleType(){
