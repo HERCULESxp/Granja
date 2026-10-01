@@ -294,11 +294,35 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px
       <div class="panel-title"><h2>Registrar venda</h2></div>
       <div class="notice">O estoque é calculado automaticamente: <b>ovos produzidos − ovos vendidos</b>. Não é possível registrar uma venda maior que o estoque disponível.</div>
       <form onsubmit="addSale(event)"><div class="row">
-        <div class="field"><label>Data</label><input type="date" id="vDate" required></div>
-        <div class="field"><label>Quantidade de ovos</label><input id="vQty" type="number" min="1" step="1" required placeholder="Ex.: 60"></div>
-        <div class="field"><label>Valor da venda (R$)</label><input id="vValue" type="number" min="0" step="0.01" required placeholder="0,00"></div>
-        <div class="field wide"><label>Cliente / observação</label><input id="vObs" placeholder="Opcional"></div>
-      </div><div class="actions"><button class="btn">Registrar venda</button></div></form>
+  <div class="field">
+    <label>Data</label>
+    <input type="date" id="vDate" required>
+  </div>
+
+  <div class="field">
+    <label>Tipo de venda</label>
+    <select id="vType" onchange="updateSaleType()">
+      <option value="ovos">Ovos</option>
+      <option value="animais">Animais</option>
+    </select>
+  </div>
+
+  <div class="field" id="saleItemField">
+    <label>Quantidade de ovos</label>
+    <input id="vQty" type="number" min="1" step="1" required placeholder="Ex.: 60">
+  </div>
+
+  <div class="field">
+    <label>Valor da venda (R$)</label>
+    <input id="vValue" type="number" min="0" step="0.01" required placeholder="0,00">
+  </div>
+
+  <div class="field wide">
+    <label>Cliente / observação</label>
+    <input id="vObs" placeholder="Opcional">
+  </div>
+</div>
+<div class="actions"><button class="btn">Registrar venda</button></div></form>
     </div>
     <div class="card" style="margin-top:16px"><div class="panel-title"><h2>Histórico de vendas</h2><input style="max-width:180px" type="month" id="salesMonth" onchange="renderSales()"></div><div class="table-wrap"><table><thead><tr><th>Data</th><th class="num">Ovos</th><th class="num">Valor</th><th>Cliente / Obs.</th><th></th></tr></thead><tbody id="salesTable"></tbody></table></div></div>
   </section>
@@ -358,14 +382,102 @@ function showPage(id){document.querySelectorAll('.section').forEach(s=>s.classLi
 function toast(msg){let t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
 function addExpense(e){e.preventDefault();data.expenses.push({id:Date.now(),date:gDate.value,cat:gCat.value,desc:gDesc.value.trim(),qty:Number(gQty.value||0),value:Number(gValue.value)});save();e.target.reset();gDate.value=today();toast('Gasto adicionado!');renderExpenses();renderDashboard()}
 function addProduction(e){e.preventDefault();data.production.push({id:Date.now(),date:pDate.value,qty:Number(pQty.value),obs:pObs.value.trim()});save();e.target.reset();pDate.value=today();toast('Produção registrada!');renderProduction();renderDashboard()}
-function stock(){return data.production.reduce((a,x)=>a+x.qty,0)-data.sales.reduce((a,x)=>a+x.qty,0)}
-function addSale(e){e.preventDefault();let q=Number(vQty.value),available=stock();if(q>available){toast(`Estoque insuficiente. Disponível: ${available} ovos.`);return}data.sales.push({id:Date.now(),date:vDate.value,qty:q,value:Number(vValue.value),obs:vObs.value.trim()});save();e.target.reset();vDate.value=today();toast('Venda registrada e estoque atualizado!');renderSales();renderDashboard()}
+function stock(){
+  return data.production.reduce((a,x)=>a+x.qty,0)
+    - data.sales.filter(x=>!x.type || x.type==='ovos').reduce((a,x)=>a+x.qty,0);
+}
+function updateSaleType(){
+  const type=vType.value;
+  const field=document.getElementById('saleItemField');
+
+  if(type==='animais'){
+    field.innerHTML=`
+      <label>Animal</label>
+      <input id="vQty" type="text" required placeholder="Ex.: Galinha">
+    `;
+  }else{
+    field.innerHTML=`
+      <label>Quantidade de ovos</label>
+      <input id="vQty" type="number" min="1" step="1" required placeholder="Ex.: 60">
+    `;
+  }
+}
+function addSale(e){
+  e.preventDefault();
+
+  const type=vType.value;
+
+  if(type==='animais'){
+    const animal=vQty.value.trim();
+
+    if(!animal){
+      toast('Digite qual animal foi vendido.');
+      return;
+    }
+
+    data.sales.push({
+      id:Date.now(),
+      date:vDate.value,
+      type:'animais',
+      animal:animal,
+      qty:0,
+      value:Number(vValue.value),
+      obs:vObs.value.trim()
+    });
+
+  }else{
+    const q=Number(vQty.value);
+    const available=stock();
+
+    if(q>available){
+      toast(`Estoque insuficiente. Disponível: ${available} ovos.`);
+      return;
+    }
+
+    data.sales.push({
+      id:Date.now(),
+      date:vDate.value,
+      type:'ovos',
+      qty:q,
+      value:Number(vValue.value),
+      obs:vObs.value.trim()
+    });
+  }
+
+  save();
+  e.target.reset();
+  vDate.value=today();
+  vType.value='ovos';
+  updateSaleType();
+
+  toast('Venda registrada e estoque atualizado!');
+  renderSales();
+  renderDashboard();
+}
 function removeItem(type,id){if(!confirm('Excluir este registro?'))return;data[type]=data[type].filter(x=>x.id!==id);save();toast('Registro excluído.');renderDashboard();if(type==='expenses')renderExpenses();if(type==='production')renderProduction();if(type==='sales')renderSales();if(document.getElementById('relatorios').classList.contains('active'))renderReports()}
 function inMonth(date,m){return !m||date.startsWith(m)}
 function renderExpenses(){let m=expenseMonth.value;let arr=data.expenses.filter(x=>inMonth(x.date,m)).sort((a,b)=>b.date.localeCompare(a.date));expenseTable.innerHTML=arr.length?arr.map(x=>`<tr><td>${dateBR(x.date)}</td><td><span class="badge">${x.cat}</span></td><td>${esc(x.desc)||'—'}</td><td>${x.qty||'—'}</td><td class="num">${brl(x.value)}</td><td><button class="btn small danger" onclick="removeItem('expenses',${x.id})">Excluir</button></td></tr>`).join(''):`<tr><td colspan="6" class="empty">Nenhum gasto neste mês.</td></tr>`}
 function renderProduction(){let m=productionMonth.value;let arr=data.production.filter(x=>inMonth(x.date,m)).sort((a,b)=>b.date.localeCompare(a.date));productionTable.innerHTML=arr.length?arr.map(x=>`<tr><td>${dateBR(x.date)}</td><td class="num"><b>${x.qty}</b></td><td>${esc(x.obs)||'—'}</td><td><button class="btn small danger" onclick="removeItem('production',${x.id})">Excluir</button></td></tr>`).join(''):`<tr><td colspan="4" class="empty">Nenhuma produção neste mês.</td></tr>`}
-function renderSales(){let m=salesMonth.value;let arr=data.sales.filter(x=>inMonth(x.date,m)).sort((a,b)=>b.date.localeCompare(a.date));salesTable.innerHTML=arr.length?arr.map(x=>`<tr><td>${dateBR(x.date)}</td><td class="num"><b>${x.qty}</b></td><td class="num">${brl(x.value)}</td><td>${esc(x.obs)||'—'}</td><td><button class="btn small danger" onclick="removeItem('sales',${x.id})">Excluir</button></td></tr>`).join(''):`<tr><td colspan="5" class="empty">Nenhuma venda neste mês.</td></tr>`}
-function renderDashboard(){let m=dashMonth.value||monthNow();let ex=data.expenses.filter(x=>inMonth(x.date,m)),pr=data.production.filter(x=>inMonth(x.date,m)),sa=data.sales.filter(x=>inMonth(x.date,m));let gastos=ex.reduce((a,x)=>a+x.value,0),fat=sa.reduce((a,x)=>a+x.value,0),prod=pr.reduce((a,x)=>a+x.qty,0),vend=sa.reduce((a,x)=>a+x.qty,0);kGastos.textContent=brl(gastos);kFat.textContent=brl(fat);kLucro.textContent=brl(fat-gastos);kLucro.className='value '+(fat-gastos>=0?'green':'red');kEstoque.textContent=stock().toLocaleString('pt-BR');kProd.textContent=prod.toLocaleString('pt-BR');kVendOvos.textContent=vend.toLocaleString('pt-BR');kVendas.textContent=sa.length;kTicket.textContent=brl(sa.length?fat/sa.length:0);drawChart(m,pr);monthSummary.innerHTML=`<div style="display:grid;gap:10px"><div><b>Produção:</b> ${prod} ovos</div><div><b>Vendas:</b> ${sa.length} (${vend} ovos)</div><div><b>Gastos:</b> ${brl(gastos)}</div><div><b>Faturamento:</b> ${brl(fat)}</div><div><b>Lucro:</b> <span class="${fat-gastos>=0?'green':'red'}"><b>${brl(fat-gastos)}</b></span></div><div><b>Estoque atual:</b> ${stock()} ovos</div></div>`}
+function renderSales(){
+  let m=salesMonth.value;
+  let arr=data.sales.filter(x=>inMonth(x.date,m)).sort((a,b)=>b.date.localeCompare(a.date));
+
+  salesTable.innerHTML=arr.length?arr.map(x=>{
+    const isAnimal=x.type==='animais';
+
+    return `<tr>
+      <td>${dateBR(x.date)}</td>
+      <td class="num"><b>${isAnimal?esc(x.animal):x.qty+' ovos'}</b></td>
+      <td class="num">${brl(x.value)}</td>
+      <td>${esc(x.obs)||'—'}</td>
+      <td><button class="btn small danger" onclick="removeItem('sales',${x.id})">Excluir</button></td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="5" class="empty">Nenhuma venda neste mês.</td></tr>`;
+}
+function renderDashboard(){let m=dashMonth.value||monthNow();let ex=data.expenses.filter(x=>inMonth(x.date,m)),pr=data.production.filter(x=>inMonth(x.date,m)),sa=data.sales.filter(x=>inMonth(x.date,m));let gastos=ex.reduce((a,x)=>a+x.value,0),
+fat=sa.reduce((a,x)=>a+x.value,0),
+prod=pr.reduce((a,x)=>a+x.qty,0),
+vend=sa.filter(x=>!x.type || x.type==='ovos').reduce((a,x)=>a+x.qty,0);kGastos.textContent=brl(gastos);kFat.textContent=brl(fat);kLucro.textContent=brl(fat-gastos);kLucro.className='value '+(fat-gastos>=0?'green':'red');kEstoque.textContent=stock().toLocaleString('pt-BR');kProd.textContent=prod.toLocaleString('pt-BR');kVendOvos.textContent=vend.toLocaleString('pt-BR');kVendas.textContent=sa.length;kTicket.textContent=brl(sa.length?fat/sa.length:0);drawChart(m,pr);monthSummary.innerHTML=`<div style="display:grid;gap:10px"><div><b>Produção:</b> ${prod} ovos</div><div><b>Vendas:</b> ${sa.length} (${vend} ovos)</div><div><b>Gastos:</b> ${brl(gastos)}</div><div><b>Faturamento:</b> ${brl(fat)}</div><div><b>Lucro:</b> <span class="${fat-gastos>=0?'green':'red'}"><b>${brl(fat-gastos)}</b></span></div><div><b>Estoque atual:</b> ${stock()} ovos</div></div>`}
 function drawChart(m,pr){let days=new Date(Number(m.slice(0,4)),Number(m.slice(5,7)),0).getDate(),map={};pr.forEach(x=>map[x.date]=(map[x.date]||0)+x.qty);let max=Math.max(1,...Object.values(map));chart.innerHTML=Array.from({length:days},(_,i)=>{let d=String(i+1).padStart(2,'0'),key=m+'-'+d,v=map[key]||0;return `<div class="barbox"><div class="barvalue">${v||''}</div><div class="bar" title="${d}/${m.slice(5)}: ${v} ovos" style="height:${v?Math.max(3,v/max*170):2}px"></div><div class="barlabel">${i%2===0?d:''}</div></div>`}).join('')}
 function renderReports(){let m=reportMonth.value||monthNow(),ex=data.expenses.filter(x=>inMonth(x.date,m)),pr=data.production.filter(x=>inMonth(x.date,m)),sa=data.sales.filter(x=>inMonth(x.date,m));let gastos=ex.reduce((a,x)=>a+x.value,0),fat=sa.reduce((a,x)=>a+x.value,0),prod=pr.reduce((a,x)=>a+x.qty,0),vend=sa.reduce((a,x)=>a+x.qty,0);let cats={};ex.forEach(x=>cats[x.cat]=(cats[x.cat]||0)+x.value);reportBox.innerHTML=`<div class="grid"><div class="card kpi"><div class="label">PRODUÇÃO</div><div class="value blue">${prod} ovos</div></div><div class="card kpi"><div class="label">VENDIDOS</div><div class="value blue">${vend} ovos</div></div><div class="card kpi"><div class="label">FATURAMENTO</div><div class="value green">${brl(fat)}</div></div><div class="card kpi"><div class="label">LUCRO</div><div class="value ${fat-gastos>=0?'green':'red'}">${brl(fat-gastos)}</div></div></div><div class="two" style="margin-top:16px"><div><h3>Gastos por categoria</h3><table class="report-category" ><thead><tr><th>Categoria</th><th class="num">Valor</th></tr></thead><tbody>${Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(x=>`<tr><td>${x[0]}</td><td class="num">${brl(x[1])}</td></tr>`).join('')||'<tr><td colspan="2" class="empty">Sem gastos.</td></tr>'}</tbody></table></div><div><h3>Indicadores</h3><p>Quantidade de vendas: <b>${sa.length}</b></p><p>Ticket médio: <b>${brl(sa.length?fat/sa.length:0)}</b></p><p>Preço médio por ovo vendido: <b>${brl(vend?fat/vend:0)}</b></p><p>Estoque atual: <b>${stock()} ovos</b></p></div></div>`}
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
