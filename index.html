@@ -547,6 +547,7 @@ function updateSaleType(){
   }
 }
 function addSale(e){
+function addSale(e){
   e.preventDefault();
 
   const type=vType.value;
@@ -572,29 +573,46 @@ function addSale(e){
   }else{
     const q=Number(vQty.value);
     const available=stock();
+    const consumoProprio=document.getElementById('vConsumptionCheck').checked;
 
     if(q>available){
       toast(`Estoque insuficiente. Disponível: ${available} ovos.`);
       return;
     }
 
-    data.sales.push({
-      id:Date.now(),
-      date:vDate.value,
-      type:'ovos',
-      qty:q,
-      value:Number(vValue.value),
-      obs:vObs.value.trim()
-    });
+    if(consumoProprio){
+
+      data.consumption.push({
+        id:Date.now(),
+        date:vDate.value,
+        type:'ovos',
+        qty:q
+      });
+
+    }else{
+
+      data.sales.push({
+        id:Date.now(),
+        date:vDate.value,
+        type:'ovos',
+        qty:q,
+        value:Number(vValue.value),
+        obs:vObs.value.trim()
+      });
+
+    }
   }
 
   save();
   e.target.reset();
+
   vDate.value=today();
   vType.value='ovos';
-  updateSaleType();
 
-  toast('Venda registrada e estoque atualizado!');
+  updateSaleType();
+  toggleConsumption();
+
+  toast('Registro realizado e estoque atualizado!');
   renderSales();
   renderDashboard();
 }
