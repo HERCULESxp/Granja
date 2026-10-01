@@ -534,19 +534,27 @@ function stock(){
 function updateSaleType(){
   const type=vType.value;
   const field=document.getElementById('saleItemField');
+  const consumption=document.getElementById('vConsumptionCheck');
 
   if(type==='animais'){
     field.innerHTML=`
       <label>Animal</label>
       <input id="vQty" type="text" required placeholder="Ex.: Galinha">
     `;
+
+    // Consumo próprio não se aplica a animais
+    consumption.checked=false;
+    toggleConsumption();
+
   }else{
     field.innerHTML=`
       <label>Quantidade de ovos</label>
       <input id="vQty" type="number" min="1" step="1" required placeholder="Ex.: 60">
     `;
+
+    toggleConsumption();
   }
-}
+   }
 function addSale(e){
   e.preventDefault();
 
