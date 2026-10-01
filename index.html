@@ -476,7 +476,7 @@ function renderSales(){
 
     return `<tr>
       <td>${dateBR(x.date)}</td>
-      <td class="num"><b>${isAnimal?esc(x.animal):x.qty+' ovos'}</b></td>
+      <td><b>${isAnimal?esc(x.animal):x.qty+' ovos'}</b></td>
       <td class="num">${brl(x.value)}</td>
       <td>${esc(x.obs)||'—'}</td>
       <td><button class="btn small danger" onclick="removeItem('sales',${x.id})">Excluir</button></td>
