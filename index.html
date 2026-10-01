@@ -246,8 +246,26 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px
   </div>
 
   <section id="dashboard" class="section active">
-    <div class="monthbar"><label style="margin:0">Mês de análise<br><input type="month" id="dashMonth" onchange="renderDashboard()"></label></div>
-    <div class="grid">
+     <div class="monthbar">
+  <label style="margin:0">
+    Período de análise<br>
+    <select id="dashPeriod" onchange="renderDashboard()">
+      <option value="mensal">Mensal</option>
+      <option value="anual">Anual</option>
+    </select>
+  </label>
+
+  <label id="dashMonthField" style="margin:0">
+    Mês<br>
+    <input type="month" id="dashMonth" onchange="renderDashboard()">
+  </label>
+
+  <label id="dashYearField" style="margin:0;display:none">
+    Ano<br>
+    <input type="number" id="dashYear" min="2000" max="2100" onchange="renderDashboard()">
+  </label>
+     </div>
+   <div class="grid">
       <div class="card kpi"><div class="label">GASTOS</div><div class="value red" id="kGastos">R$ 0,00</div></div>
       <div class="card kpi"><div class="label">FATURAMENTO</div><div class="value green" id="kFat">R$ 0,00</div></div>
       <div class="card kpi"><div class="label">LUCRO</div><div class="value" id="kLucro">R$ 0,00</div></div>
@@ -371,7 +389,15 @@ function today(){
   return `${year}-${month}-${day}`;
 }
 function monthNow(){return today().slice(0,7)}
-function setDefaults(){['gDate','pDate','vDate'].forEach(id=>document.getElementById(id).value=today());['dashMonth','expenseMonth','productionMonth','salesMonth','reportMonth'].forEach(id=>document.getElementById(id).value=monthNow())}
+function setDefaults(){
+  ['gDate','pDate','vDate'].forEach(id=>document.getElementById(id).value=today());
+
+  ['dashMonth','expenseMonth','productionMonth','salesMonth','reportMonth']
+    .forEach(id=>document.getElementById(id).value=monthNow());
+
+  dashPeriod.value='mensal';
+  dashYear.value=monthNow().slice(0,4);
+}
 function nav(){let html=menus.map(x=>`<button data-page="${x[0]}" onclick="showPage('${x[0]}')">${x[1]} ${x[2]}</button>`).join('');document.getElementById('nav').innerHTML=html;document.getElementById('mobileNav').innerHTML=html;markNav()}
 function markNav(){
     let p = document.querySelector('.section.active')?.id;
@@ -490,11 +516,110 @@ function renderSales(){
     </tr>`;
   }).join(''):`<tr><td colspan="5" class="empty">Nenhuma venda neste mês.</td></tr>`;
 }
-function renderDashboard(){let m=dashMonth.value||monthNow();let ex=data.expenses.filter(x=>inMonth(x.date,m)),pr=data.production.filter(x=>inMonth(x.date,m)),sa=data.sales.filter(x=>inMonth(x.date,m));let gastos=ex.reduce((a,x)=>a+x.value,0),
-fat=sa.reduce((a,x)=>a+x.value,0),
-prod=pr.reduce((a,x)=>a+x.qty,0),
-vend=sa.filter(x=>!x.type || x.type==='ovos').reduce((a,x)=>a+x.qty,0);kGastos.textContent=brl(gastos);kFat.textContent=brl(fat);kLucro.textContent=brl(fat-gastos);kLucro.className='value '+(fat-gastos>=0?'green':'red');kEstoque.textContent=stock().toLocaleString('pt-BR');kProd.textContent=prod.toLocaleString('pt-BR');kVendOvos.textContent=vend.toLocaleString('pt-BR');kVendas.textContent=sa.length;kTicket.textContent=brl(sa.length?fat/sa.length:0);drawChart(m,pr);monthSummary.innerHTML=`<div style="display:grid;gap:10px"><div><b>Produção:</b> ${prod} ovos</div><div><b>Vendas:</b> ${sa.length} (${vend} ovos)</div><div><b>Gastos:</b> ${brl(gastos)}</div><div><b>Faturamento:</b> ${brl(fat)}</div><div><b>Lucro:</b> <span class="${fat-gastos>=0?'green':'red'}"><b>${brl(fat-gastos)}</b></span></div><div><b>Estoque atual:</b> ${stock()} ovos</div></div>`}
+function renderDashboard(){
+  const period=dashPeriod.value||'mensal';
+  const m=dashMonth.value||monthNow();
+  const year=dashYear.value||m.slice(0,4);
+
+  dashMonthField.style.display=period==='mensal'?'block':'none';
+  dashYearField.style.display=period==='anual'?'block':'none';
+
+  let ex,pr,sa;
+
+  if(period==='anual'){
+    ex=data.expenses.filter(x=>x.date.startsWith(year));
+    pr=data.production.filter(x=>x.date.startsWith(year));
+    sa=data.sales.filter(x=>x.date.startsWith(year));
+  }else{
+    ex=data.expenses.filter(x=>inMonth(x.date,m));
+    pr=data.production.filter(x=>inMonth(x.date,m));
+    sa=data.sales.filter(x=>inMonth(x.date,m));
+  }
+
+  let gastos=ex.reduce((a,x)=>a+x.value,0);
+  let fat=sa.reduce((a,x)=>a+x.value,0);
+  let prod=pr.reduce((a,x)=>a+x.qty,0);
+  let vend=sa.filter(x=>!x.type||x.type==='ovos').reduce((a,x)=>a+x.qty,0);
+
+  kGastos.textContent=brl(gastos);
+  kFat.textContent=brl(fat);
+  kLucro.textContent=brl(fat-gastos);
+  kLucro.className='value '+(fat-gastos>=0?'green':'red');
+
+  kEstoque.textContent=stock().toLocaleString('pt-BR');
+  kProd.textContent=prod.toLocaleString('pt-BR');
+  kVendOvos.textContent=vend.toLocaleString('pt-BR');
+  kVendas.textContent=sa.length;
+  kTicket.textContent=brl(sa.length?fat/sa.length:0);
+
+  if(period==='anual'){
+    drawYearChart(year,pr);
+
+    monthSummary.innerHTML=`
+      <div style="display:grid;gap:10px">
+        <div><b>Ano:</b> ${year}</div>
+        <div><b>Produção:</b> ${prod.toLocaleString('pt-BR')} ovos</div>
+        <div><b>Vendas:</b> ${sa.length} (${vend.toLocaleString('pt-BR')} ovos)</div>
+        <div><b>Gastos:</b> ${brl(gastos)}</div>
+        <div><b>Faturamento:</b> ${brl(fat)}</div>
+        <div><b>Resultado do ano:</b>
+          <span class="${fat-gastos>=0?'green':'red'}">
+            <b>${brl(fat-gastos)}</b>
+          </span>
+        </div>
+        <div><b>Estoque atual:</b> ${stock().toLocaleString('pt-BR')} ovos</div>
+      </div>`;
+  }else{
+    drawChart(m,pr);
+
+    monthSummary.innerHTML=`
+      <div style="display:grid;gap:10px">
+        <div><b>Produção:</b> ${prod} ovos</div>
+        <div><b>Vendas:</b> ${sa.length} (${vend} ovos)</div>
+        <div><b>Gastos:</b> ${brl(gastos)}</div>
+        <div><b>Faturamento:</b> ${brl(fat)}</div>
+        <div><b>Resultado do mês:</b>
+          <span class="${fat-gastos>=0?'green':'red'}">
+            <b>${brl(fat-gastos)}</b>
+          </span>
+        </div>
+        <div><b>Estoque atual:</b> ${stock()} ovos</div>
+      </div>`;
+  }
+}
 function drawChart(m,pr){let days=new Date(Number(m.slice(0,4)),Number(m.slice(5,7)),0).getDate(),map={};pr.forEach(x=>map[x.date]=(map[x.date]||0)+x.qty);let max=Math.max(1,...Object.values(map));chart.innerHTML=Array.from({length:days},(_,i)=>{let d=String(i+1).padStart(2,'0'),key=m+'-'+d,v=map[key]||0;return `<div class="barbox"><div class="barvalue">${v||''}</div><div class="bar" title="${d}/${m.slice(5)}: ${v} ovos" style="height:${v?Math.max(3,v/max*170):2}px"></div><div class="barlabel">${i%2===0?d:''}</div></div>`}).join('')}
+function drawYearChart(year,pr){
+  const months=[
+    'Jan','Fev','Mar','Abr','Mai','Jun',
+    'Jul','Ago','Set','Out','Nov','Dez'
+  ];
+
+  let map={};
+
+  pr
+    .filter(x=>x.date.startsWith(year))
+    .forEach(x=>{
+      const month=Number(x.date.slice(5,7));
+      map[month]=(map[month]||0)+x.qty;
+    });
+
+  let max=Math.max(1,...Object.values(map));
+
+  chart.innerHTML=months.map((name,i)=>{
+    const month=i+1;
+    const v=map[month]||0;
+
+    return `
+      <div class="barbox">
+        <div class="barvalue">${v||''}</div>
+        <div class="bar"
+          title="${name}/${year}: ${v} ovos"
+          style="height:${v?Math.max(3,v/max*170):2}px">
+        </div>
+        <div class="barlabel">${name}</div>
+      </div>`;
+  }).join('');
+}
 function renderReports(){let m=reportMonth.value||monthNow(),ex=data.expenses.filter(x=>inMonth(x.date,m)),pr=data.production.filter(x=>inMonth(x.date,m)),sa=data.sales.filter(x=>inMonth(x.date,m));let gastos=ex.reduce((a,x)=>a+x.value,0),fat=sa.reduce((a,x)=>a+x.value,0),prod=pr.reduce((a,x)=>a+x.qty,0),vend=sa.reduce((a,x)=>a+x.qty,0);let cats={};ex.forEach(x=>cats[x.cat]=(cats[x.cat]||0)+x.value);reportBox.innerHTML=`<div class="grid"><div class="card kpi"><div class="label">PRODUÇÃO</div><div class="value blue">${prod} ovos</div></div><div class="card kpi"><div class="label">VENDIDOS</div><div class="value blue">${vend} ovos</div></div><div class="card kpi"><div class="label">FATURAMENTO</div><div class="value green">${brl(fat)}</div></div><div class="card kpi"><div class="label">LUCRO</div><div class="value ${fat-gastos>=0?'green':'red'}">${brl(fat-gastos)}</div></div></div><div class="two" style="margin-top:16px"><div><h3>Gastos por categoria</h3><table class="report-category" ><thead><tr><th>Categoria</th><th class="num">Valor</th></tr></thead><tbody>${Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(x=>`<tr><td>${x[0]}</td><td class="num">${brl(x[1])}</td></tr>`).join('')||'<tr><td colspan="2" class="empty">Sem gastos.</td></tr>'}</tbody></table></div><div><h3>Indicadores</h3><p>Quantidade de vendas: <b>${sa.length}</b></p><p>Ticket médio: <b>${brl(sa.length?fat/sa.length:0)}</b></p><p>Preço médio por ovo vendido: <b>${brl(vend?fat/vend:0)}</b></p><p>Estoque atual: <b>${stock()} ovos</b></p></div></div>`}
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function exportData(){let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`backup-granja-${today()}.json`;a.click();URL.revokeObjectURL(a.href);toast('Backup exportado!')}
