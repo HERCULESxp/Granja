@@ -275,8 +275,8 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px
       <div class="card kpi"><div class="label">MÉDIA POR VENDA</div><div class="value" id="kTicket">R$ 0,00</div></div>
     </div>
     <div class="two">
-      <div class="card"><div class="panel-title"><h2>Produção diária de ovos</h2></div><div id="chart" class="bars"></div></div>
-      <div class="card"><div class="panel-title"><h2>Resumo do mês</h2></div><div id="monthSummary"></div></div>
+      <div class="card"><div class="panel-title"><h2>Produção diária de ovos</h2></div><div id="chartTitle" class="bars"></div></div>
+      <div class="card"><div class="panel-title"><h2>Resumo do mês</h2></div><div id="summaryTitle"></div></div>
     </div>
   </section>
 
@@ -551,7 +551,15 @@ function renderDashboard(){
   let fat=sa.reduce((a,x)=>a+x.value,0);
   let prod=pr.reduce((a,x)=>a+x.qty,0);
   let vend=sa.filter(x=>!x.type||x.type==='ovos').reduce((a,x)=>a+x.qty,0);
+ 
+  chartTitle.textContent = period === 'anual'
+  ? 'Produção mensal'
+  : 'Produção diária';
 
+  summaryTitle.textContent = period === 'anual'
+  ? 'Resumo do ano'
+  : 'Resumo do mês';
+   
   kGastos.textContent=brl(gastos);
   kFat.textContent=brl(fat);
   kLucro.textContent=brl(fat-gastos);
