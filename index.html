@@ -341,7 +341,12 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px
     <label>Quantidade de ovos</label>
     <input id="vQty" type="number" min="1" step="1" required placeholder="Ex.: 60">
   </div>
-
+  <div class="field">
+  <label style="display:flex;align-items:center;gap:7px;">
+    <input type="checkbox" id="vConsumptionCheck" onchange="toggleConsumption()" style="width:auto;">
+    Consumo próprio
+  </label>
+  </div>
   <div class="field">
     <label>Valor da venda (R$)</label>
     <input id="vValue" type="number" min="0" step="0.01" required placeholder="0,00">
@@ -387,7 +392,11 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px
 
 <script>
 const KEY='granja_caixa_v1';
-let data=JSON.parse(localStorage.getItem(KEY)||'{"expenses":[],"production":[],"sales":[]}');
+let data=JSON.parse(localStorage.getItem(KEY)||'{"expenses":[],"production":[],"sales":[],"consumption":[]}');
+
+if(!data.consumption){
+  data.consumption=[];
+}
 const menus=[['dashboard','📊','Dashboard'],['gastos','🌽','Gastos'],['producao','🥚','Produção'],['vendas','💰','Vendas'],['relatorios','📋','Relatórios'],['config','⚙️','Dados/Backup']];
 function save(){localStorage.setItem(KEY,JSON.stringify(data))}
 function brl(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
@@ -447,6 +456,38 @@ function markNav(){
 function showPage(id){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');let m=menus.find(x=>x[0]===id);document.getElementById('pageTitle').textContent=m[2];document.getElementById('pageSub').textContent=id==='dashboard'?'Visão geral da sua granja':id==='config'?'Backup e armazenamento local':'Gerencie seus registros';markNav();if(id==='dashboard')renderDashboard();if(id==='gastos')renderExpenses();if(id==='producao')renderProduction();if(id==='vendas')renderSales();if(id==='relatorios')renderReports();window.scrollTo(0,0)}
 function toast(msg){let t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
 function addExpense(e){e.preventDefault();data.expenses.push({id:Date.now(),date:gDate.value,cat:gCat.value,desc:gDesc.value.trim(),qty:Number(gQty.value||0),value:Number(gValue.value)});save();e.target.reset();gDate.value=today();toast('Gasto adicionado!');renderExpenses();renderDashboard()}
+function toggleConsumption(){
+  const check=document.getElementById('vConsumptionCheck');
+  const type=document.getElementById('vType');
+  const value=document.getElementById('vValue');
+  const obs=document.getElementById('vObs');
+
+  // Consumo próprio só funciona para ovos
+  if(type.value!=='ovos'){
+    check.checked=false;
+    return;
+  }
+
+  if(check.checked){
+    // Esconde o valor da venda
+    value.parentElement.style.display='none';
+    value.required=false;
+    value.value='';
+
+    // Preenche e bloqueia a observação
+    obs.value='Consumo Próprio';
+    obs.disabled=true;
+
+  }else{
+    // Mostra novamente o valor da venda
+    value.parentElement.style.display='';
+    value.required=true;
+
+    // Libera a observação
+    obs.disabled=false;
+    obs.value='';
+  }
+}
 function toggleBrokenEggs(){
   const check=document.getElementById('pBrokenCheck');
   const broken=document.getElementById('pBroken');
