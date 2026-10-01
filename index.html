@@ -622,10 +622,35 @@ function renderExpenses(){let m=expenseMonth.value;let arr=data.expenses.filter(
 function renderProduction(){let m=productionMonth.value;let arr=data.production.filter(x=>inMonth(x.date,m)).sort((a,b)=>b.date.localeCompare(a.date));productionTable.innerHTML=arr.length?arr.map(x=>`<tr><td>${dateBR(x.date)}</td><td class="num"><b>${x.qty}</b></td><td>${esc(x.obs)||'—'}</td><td><button class="btn small danger" onclick="removeItem('production',${x.id})">Excluir</button></td></tr>`).join(''):`<tr><td colspan="4" class="empty">Nenhuma produção neste mês.</td></tr>`}
 function renderSales(){
   let m=salesMonth.value;
-  let arr=data.sales.filter(x=>inMonth(x.date,m)).sort((a,b)=>b.date.localeCompare(a.date));
+
+  let sales=data.sales
+    .filter(x=>inMonth(x.date,m))
+    .map(x=>({...x,isConsumption:false}));
+
+  let consumption=data.consumption
+    .filter(x=>inMonth(x.date,m))
+    .map(x=>({
+      ...x,
+      isConsumption:true,
+      value:0,
+      obs:'Consumo Próprio'
+    }));
+
+  let arr=[...sales,...consumption]
+    .sort((a,b)=>b.date.localeCompare(a.date));
 
   salesTable.innerHTML=arr.length?arr.map(x=>{
     const isAnimal=x.type==='animais';
+
+    if(x.isConsumption){
+      return `<tr>
+        <td>${dateBR(x.date)}</td>
+        <td><b>${x.qty} ovos</b></td>
+        <td class="num">—</td>
+        <td>${esc(x.obs)}</td>
+        <td><button class="btn small danger" onclick="removeItem('consumption',${x.id})">Excluir</button></td>
+      </tr>`;
+    }
 
     return `<tr>
       <td>${dateBR(x.date)}</td>
@@ -634,7 +659,7 @@ function renderSales(){
       <td>${esc(x.obs)||'—'}</td>
       <td><button class="btn small danger" onclick="removeItem('sales',${x.id})">Excluir</button></td>
     </tr>`;
-  }).join(''):`<tr><td colspan="5" class="empty">Nenhuma venda neste mês.</td></tr>`;
+  }).join(''):`<tr><td colspan="5" class="empty">Nenhum registro neste mês.</td></tr>`;
 }
 function renderDashboard(){
   const period=dashPeriod.value||'mensal';
