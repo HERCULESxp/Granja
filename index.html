@@ -362,7 +362,14 @@ const menus=[['dashboard','📊','Dashboard'],['gastos','🌽','Gastos'],['produ
 function save(){localStorage.setItem(KEY,JSON.stringify(data))}
 function brl(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
 function dateBR(s){if(!s)return'';let [y,m,d]=s.split('-');return `${d}/${m}/${y}`}
-function today(){return new Date().toISOString().slice(0,10)}
+function today(){
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
 function monthNow(){return today().slice(0,7)}
 function setDefaults(){['gDate','pDate','vDate'].forEach(id=>document.getElementById(id).value=today());['dashMonth','expenseMonth','productionMonth','salesMonth','reportMonth'].forEach(id=>document.getElementById(id).value=monthNow())}
 function nav(){let html=menus.map(x=>`<button data-page="${x[0]}" onclick="showPage('${x[0]}')">${x[1]} ${x[2]}</button>`).join('');document.getElementById('nav').innerHTML=html;document.getElementById('mobileNav').innerHTML=html;markNav()}
