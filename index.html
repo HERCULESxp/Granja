@@ -538,10 +538,14 @@ function renderDashboard(){
   let ex,pr,sa;
 
   if(period==='anual'){
+    chart.textContent = 'Produção Anual'
+    monthSummary.textContent = 'Resumo Anual'
     ex=data.expenses.filter(x=>x.date.startsWith(year));
     pr=data.production.filter(x=>x.date.startsWith(year));
     sa=data.sales.filter(x=>x.date.startsWith(year));
   }else{
+    chart.textContent = 'Produção Mensal'
+    monthSummary.textContent = 'Resumo Mensal'
     ex=data.expenses.filter(x=>inMonth(x.date,m));
     pr=data.production.filter(x=>inMonth(x.date,m));
     sa=data.sales.filter(x=>inMonth(x.date,m));
@@ -551,14 +555,7 @@ function renderDashboard(){
   let fat=sa.reduce((a,x)=>a+x.value,0);
   let prod=pr.reduce((a,x)=>a+x.qty,0);
   let vend=sa.filter(x=>!x.type||x.type==='ovos').reduce((a,x)=>a+x.qty,0);
- 
-  chart.textContent = period === 'anual'
-  ? 'Produção mensal'
-  : 'Produção diária';
 
-  monthSummary.textContent = period === 'anual'
-  ? 'Resumo do ano'
-  : 'Resumo do mês';
    
   kGastos.textContent=brl(gastos);
   kFat.textContent=brl(fat);
