@@ -299,8 +299,19 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px
       <div class="panel-title"><h2>Registrar produção de ovos</h2></div>
       <form onsubmit="addProduction(event)"><div class="row">
         <div class="field"><label>Data</label><input type="date" id="pDate" required></div>
-        <div class="field"><label>Quantidade de ovos</label><input id="pQty" type="number" min="1" step="1" required placeholder="Ex.: 120"></div>
-        <div class="field wide"><label>Observação</label><input id="pObs" placeholder="Opcional"></div>
+        <div class="field">
+  <label>Quantidade de ovos</label>
+  <input id="pQty" type="number" min="1" step="1" required placeholder="Ex.: 120">
+</div>
+
+<div class="field">
+  <label>
+    <input type="checkbox" id="pBrokenCheck" onchange="toggleBrokenEggs()">
+    Registrar ovos quebrados
+  </label>
+  <input id="pBroken" type="number" min="0" step="1" placeholder="Quantidade quebrada" style="display:none;margin-top:8px">
+</div>
+   <div class="field wide"><label>Observação</label><input id="pObs" placeholder="Opcional"></div>
       </div><div class="actions"><button class="btn">Registrar produção</button></div></form>
     </div>
     <div class="card" style="margin-top:16px"><div class="panel-title"><h2>Produção registrada</h2><input style="max-width:180px" type="month" id="productionMonth" onchange="renderProduction()"></div><div class="table-wrap"><table><thead><tr><th>Data</th><th class="num">Ovos</th><th>Observação</th><th></th></tr></thead><tbody id="productionTable"></tbody></table></div></div>
@@ -434,7 +445,43 @@ function markNav(){
 function showPage(id){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');let m=menus.find(x=>x[0]===id);document.getElementById('pageTitle').textContent=m[2];document.getElementById('pageSub').textContent=id==='dashboard'?'Visão geral da sua granja':id==='config'?'Backup e armazenamento local':'Gerencie seus registros';markNav();if(id==='dashboard')renderDashboard();if(id==='gastos')renderExpenses();if(id==='producao')renderProduction();if(id==='vendas')renderSales();if(id==='relatorios')renderReports();window.scrollTo(0,0)}
 function toast(msg){let t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
 function addExpense(e){e.preventDefault();data.expenses.push({id:Date.now(),date:gDate.value,cat:gCat.value,desc:gDesc.value.trim(),qty:Number(gQty.value||0),value:Number(gValue.value)});save();e.target.reset();gDate.value=today();toast('Gasto adicionado!');renderExpenses();renderDashboard()}
-function addProduction(e){e.preventDefault();data.production.push({id:Date.now(),date:pDate.value,qty:Number(pQty.value),obs:pObs.value.trim()});save();e.target.reset();pDate.value=today();toast('Produção registrada!');renderProduction();renderDashboard()}
+function toggleBrokenEggs(){
+  const check=document.getElementById('pBrokenCheck');
+  const broken=document.getElementById('pBroken');
+
+  broken.style.display=check.checked?'block':'none';
+  broken.required=check.checked;
+}
+
+function addProduction(e){
+  e.preventDefault();
+
+  const total=Number(pQty.value);
+  const brokenCheck=document.getElementById('pBrokenCheck').checked;
+  const broken=brokenCheck ? Number(pBroken.value) : 0;
+
+  if(broken>total){
+    toast('A quantidade de ovos quebrados não pode ser maior que a produção.');
+    return;
+  }
+
+  data.production.push({
+    id:Date.now(),
+    date:pDate.value,
+    qty:total,
+    broken:broken,
+    obs:pObs.value.trim()
+  });
+
+  save();
+  e.target.reset();
+  pDate.value=today();
+  toggleBrokenEggs();
+
+  toast('Produção registrada!');
+  renderProduction();
+  renderDashboard();
+}
 function stock(){
   return data.production.reduce((a,x)=>a+x.qty,0)
     - data.sales.filter(x=>!x.type || x.type==='ovos').reduce((a,x)=>a+x.qty,0);
