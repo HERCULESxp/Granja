@@ -775,7 +775,7 @@ document.addEventListener('touchend', function(e) {
 
 });
 function renderAll(){renderDashboard();renderExpenses();renderProduction();renderSales();renderReports()}
-nav();setDefaults();renderAll();
+nav();setupYears();setDefaults();renderAll();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
 }
