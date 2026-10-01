@@ -303,13 +303,15 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px
   <label>Quantidade de ovos</label>
   <input id="pQty" type="number" min="1" step="1" required placeholder="Ex.: 120">
 </div>
-
 <div class="field">
-  <label>
-    <input type="checkbox" id="pBrokenCheck" onchange="toggleBrokenEggs()">
+  <label style="display:flex;align-items:center;gap:7px;">
+    <input type="checkbox" id="pBrokenCheck" onchange="toggleBrokenEggs()" style="width:auto;">
     Registrar ovos quebrados
   </label>
-  <input id="pBroken" type="number" min="0" step="1" placeholder="Quantidade quebrada" style="display:none;margin-top:8px">
+
+  <input id="pBroken" type="number" min="0" step="1"
+         placeholder="Quantidade quebrada"
+         style="display:none;margin-top:8px;">
 </div>
    <div class="field wide"><label>Observação</label><input id="pObs" placeholder="Opcional"></div>
       </div><div class="actions"><button class="btn">Registrar produção</button></div></form>
