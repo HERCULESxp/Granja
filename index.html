@@ -277,7 +277,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px
     <div class="two">
       <div class="card"><div class="panel-title"><h2>Produção diária de ovos</h2></div><div id="chart" class="bars"></div></div>
       <div class="card"><div class="panel-title"><h2>Resumo do mês</h2></div><div id="monthSummary"></div></div>
-    </div
+    </div>
   </section>
 
   <section id="gastos" class="section">
@@ -556,7 +556,7 @@ function renderDashboard(){
   ? 'Produção mensal'
   : 'Produção diária';
 
-  montuSummary.textContent = period === 'anual'
+  monthSummary.textContent = period === 'anual'
   ? 'Resumo do ano'
   : 'Resumo do mês';
    
