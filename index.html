@@ -472,7 +472,8 @@ function addProduction(e){
     date:pDate.value,
     qty:total,
     broken:broken,
-    obs:pObs.value.trim()
+    obs: (broken > 0 ? `${broken} ovos quebrados` : '') +
+     (pObs.value.trim() ? (broken > 0 ? ' - ' : '') + pObs.value.trim() : '')
   });
 
   save();
