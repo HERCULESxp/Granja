@@ -1,4 +1,12 @@
-const CACHE_NAME = 'granja-cache-v4';
+const APP_SCOPE = new URL(self.registration.scope);
+const CACHE_PREFIX = `granja:${APP_SCOPE.pathname}:`;
+const CACHE_NAME = `${CACHE_PREFIX}v5`;
+
+function belongsToApp(url) {
+    return url.origin === APP_SCOPE.origin
+        && url.pathname.startsWith(APP_SCOPE.pathname)
+        && !url.pathname.slice(APP_SCOPE.pathname.length).startsWith('dev/');
+}
 
 const APP_FILES = [
     './',
@@ -33,7 +41,7 @@ self.addEventListener('activate', event => {
 
             return Promise.all(
                 keys
-                    .filter(key => key !== CACHE_NAME)
+                    .filter(key => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
                     .map(key => caches.delete(key))
             );
 
@@ -56,6 +64,7 @@ self.addEventListener('fetch', event => {
     if (request.method !== 'GET') return;
 
     const url = new URL(request.url);
+    if (!belongsToApp(url)) return;
 
 
     // ==========================================
@@ -68,7 +77,7 @@ self.addEventListener('fetch', event => {
 
         event.respondWith(
 
-            caches.match('./index.html')
+            caches.open(CACHE_NAME).then(cache => cache.match('./index.html'))
                 .then(cached => {
 
                     // Se já existe uma versão em cache,
@@ -76,7 +85,7 @@ self.addEventListener('fetch', event => {
                     if (cached) {
 
                         // Verifica atualização em segundo plano.
-                        atualizarIndex();
+                        event.waitUntil(atualizarIndex());
 
                         return cached;
                     }
@@ -84,13 +93,13 @@ self.addEventListener('fetch', event => {
                     // Primeira instalação:
                     // ainda não existe cache.
                     return fetch(request)
-                        .then(response => {
+                        .then(async response => {
 
                             if (response.ok) {
 
                                 const copy = response.clone();
 
-                                caches.open(CACHE_NAME)
+                                await caches.open(CACHE_NAME)
                                     .then(cache => {
                                         cache.put('./index.html', copy);
                                     });
@@ -111,7 +120,7 @@ self.addEventListener('fetch', event => {
     // ==========================================
     event.respondWith(
 
-        caches.match(request)
+        caches.open(CACHE_NAME).then(cache => cache.match(request))
             .then(cached => {
 
                 if (cached) {
@@ -119,13 +128,13 @@ self.addEventListener('fetch', event => {
                 }
 
                 return fetch(request)
-                    .then(response => {
+                    .then(async response => {
 
                         if (response.ok) {
 
                             const copy = response.clone();
 
-                            caches.open(CACHE_NAME)
+                            await caches.open(CACHE_NAME)
                                 .then(cache => {
                                     cache.put(request, copy);
                                 });
@@ -203,10 +212,11 @@ async function atualizarIndex() {
             // ==========================================
             const clients = await self.clients.matchAll({
                 type: 'window',
-                includeUncontrolled: true
+                includeUncontrolled: false
             });
 
             clients.forEach(client => {
+                if (!belongsToApp(new URL(client.url))) return;
 
                 client.postMessage({
                     type: 'APP_UPDATED'
