@@ -39,6 +39,12 @@ jobs:
             cp "production/$file" "public/$file"
             cp "development/$file" "public/dev/$file"
           done
+          # A produção só recebe o gerador de PDF quando ele existir na main.
+          for source in production development; do
+            target=public
+            if [ "$source" = development ]; then target=public/dev; fi
+            if [ -f "$source/report-pdf.js" ]; then cp "$source/report-pdf.js" "$target/report-pdf.js"; fi
+          done
           python3 - <<'PY'
           import json
           from pathlib import Path

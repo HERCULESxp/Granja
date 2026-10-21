@@ -1,6 +1,6 @@
 const APP_SCOPE = new URL(self.registration.scope);
 const CACHE_PREFIX = `granja:${APP_SCOPE.pathname}:`;
-const CACHE_NAME = `${CACHE_PREFIX}v5`;
+const CACHE_NAME = `${CACHE_PREFIX}v6`;
 
 function belongsToApp(url) {
     return url.origin === APP_SCOPE.origin
@@ -11,6 +11,7 @@ function belongsToApp(url) {
 const APP_FILES = [
     './',
     './index.html',
+    './report-pdf.js',
     './manifest.json',
     './icon-192.png',
     './icon-512.png'
@@ -199,6 +200,7 @@ async function atualizarIndex() {
             // Salva a nova versão no cache.
             await cache.put(
                 './index.html',
+    './report-pdf.js',
                 new Response(novoIndex, {
                     headers: {
                         'Content-Type': 'text/html; charset=UTF-8'
