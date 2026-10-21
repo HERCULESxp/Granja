@@ -211,6 +211,14 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px
         box-sizing: border-box;
     }
 }
+/* Exportação no final do relatório apenas em telas mobile. */
+.report-export-mobile { display:none; }
+@media (max-width:900px) {
+  .report-meta, .report-export-desktop { display:none; }
+  .report-export-mobile { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:24px; padding-top:18px; border-top:1px solid var(--line); }
+  .report-export-mobile h3 { margin:0; font-size:13px; line-height:1.4; }
+  .report-export-mobile .btn { flex-shrink:0; font-size:13px; }
+}
 </style>
 </head>
 <body>
@@ -373,8 +381,12 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px
 
   <section id="relatorios" class="section">
     <div class="card">
-      <div class="panel-title" style="flex-wrap:wrap;gap:12px"><h2>Relatório mensal</h2><div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><label for="reportMonth" style="margin:0">Mês do relatório</label><input style="max-width:180px" type="month" id="reportMonth" onchange="renderReports()"><button type="button" class="btn" onclick="exportReportPDF()">⬇ Exportar PDF</button></div></div>
+      <div class="panel-title" style="flex-wrap:wrap;gap:12px"><h2>Relatório mensal</h2><div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><label for="reportMonth" style="margin:0">Mês do relatório</label><input style="max-width:180px" type="month" id="reportMonth" onchange="renderReports()"><button type="button" class="btn report-export-desktop" onclick="exportReportPDF()">⬇ Exportar PDF</button></div></div>
       <div id="reportBox"></div>
+      <div class="report-export-mobile">
+        <h3>EXPORTAR RELATÓRIO</h3>
+        <button type="button" class="btn" onclick="exportReportPDF()">⬇ Exportar PDF</button>
+      </div>
     </div>
   </section>
 
@@ -907,7 +919,7 @@ function renderReports() {
     ['ESTOQUE ATUAL', qty(r.stock) + ' ovos', 'blue']
   ];
   reportBox.innerHTML = `
-    <p style="color:var(--muted);margin-top:0"><b>Período:</b> ${esc(r.period)} · <b>Atualizado em:</b> ${esc(r.emittedAt)}</p>
+    <p class="report-meta" style="color:var(--muted);margin-top:0"><b>Período:</b> ${esc(r.period)} · <b>Atualizado em:</b> ${esc(r.emittedAt)}</p>
     <div class="grid">${cards.map(([label,value,color]) => `<div class="card kpi"><div class="label">${label}</div><div class="value ${color}">${value}</div></div>`).join('')}</div>
     <div class="two" style="margin-top:16px">
       <div><h3>Gastos por categoria</h3><table class="report-category"><thead><tr><th>Categoria</th><th class="num">Valor</th></tr></thead><tbody>
