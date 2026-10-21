@@ -1,0 +1,67 @@
+name: Publicar produção e desenvolvimento
+on:
+  push:
+    branches: [main, desenvolvimento]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: granja-pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar produção
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: production
+          persist-credentials: false
+      - name: Baixar desenvolvimento
+        uses: actions/checkout@v4
+        with:
+          ref: desenvolvimento
+          path: development
+          persist-credentials: false
+      - name: Executar testes de regressão
+        run: node --test development/tests/*.test.cjs
+      - name: Verificar isolamento da produção
+        run: |
+          if ! grep -q 'const CACHE_PREFIX' production/service-worker.js; then
+            echo 'Aplique primeiro a correção de isolamento de cache na main.' >&2
+            exit 1
+          fi
+      - name: Montar as duas versões
+        run: |
+          mkdir -p public/dev
+          for file in index.html manifest.json service-worker.js icon-192.png icon-512.png; do
+            cp "production/$file" "public/$file"
+            cp "development/$file" "public/dev/$file"
+          done
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('public/dev/manifest.json')
+          manifest = json.loads(path.read_text())
+          manifest.update(name='Granja DEV — Ambiente de testes', short_name='Granja DEV', id='./', theme_color='#a66b00')
+          path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2))
+          PY
+          touch public/.nojekyll
+          chmod -R a+rX public
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publicar no GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
