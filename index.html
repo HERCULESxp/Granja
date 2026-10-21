@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no", viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
 <meta name="theme-color" content="#123b2d">
 <meta name="mobile-web-app-capable" content="yes">
@@ -267,7 +267,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px
    <div class="grid">
       <div class="card kpi"><div class="label">GASTOS</div><div class="value red" id="kGastos">R$ 0,00</div></div>
       <div class="card kpi"><div class="label">FATURAMENTO</div><div class="value green" id="kFat">R$ 0,00</div></div>
-      <div class="card kpi"><div class="label">LUCRO</div><div class="value" id="kLucro">R$ 0,00</div></div>
+      <div class="card kpi"><div class="label">RESULTADO DE CAIXA</div><div class="value" id="kLucro">R$ 0,00</div></div>
       <div class="card kpi"><div class="label">OVOS EM ESTOQUE</div><div class="value orange" id="kEstoque">0</div></div>
       <div class="card kpi"><div class="label">OVOS PRODUZIDOS</div><div class="value blue" id="kProd">0</div></div>
       <div class="card kpi"><div class="label">OVOS VENDIDOS</div><div class="value blue" id="kVendOvos">0</div></div>
@@ -322,7 +322,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px
   <section id="vendas" class="section">
     <div class="card">
       <div class="panel-title"><h2>Registrar venda</h2></div>
-      <div class="notice">O estoque é calculado automaticamente: <b>ovos produzidos − ovos vendidos</b>. Não é possível registrar uma venda maior que o estoque disponível.</div>
+      <div class="notice">O estoque é calculado automaticamente: <b>ovos produzidos − quebrados − vendidos − consumo próprio</b>. Não é possível registrar uma venda maior que o estoque disponível.</div>
       <form onsubmit="addSale(event)"><div class="row">
   <div class="field">
     <label>Data</label>
@@ -382,23 +382,96 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px
     <div class="card">
       <div class="panel-title"><h2>Backup e dados</h2></div>
       <p style="color:var(--muted)">Os dados ficam salvos neste navegador. Faça backups regularmente para não perder seus registros.</p>
-      <div class="actions"><button class="btn" onclick="exportData()">⬇ Exportar backup</button><button class="btn secondary" onclick="document.getElementById('importFile').click()">⬆ Importar backup</button><input id="importFile" type="file" accept=".json" hidden onchange="importData(event)"><button class="btn danger" onclick="clearData()">🗑 Apagar todos os dados</button></div>
+      <div class="actions"><button class="btn" onclick="exportData()">⬇ Exportar backup</button><button class="btn secondary" onclick="document.getElementById('importFile').click()">⬆ Importar backup</button><input id="importFile" type="file" accept=".json" hidden onchange="importData(event)"><button class="btn secondary" onclick="exportPreviousBackup()">⬇ Cópia anterior à importação</button><button class="btn danger" onclick="clearData()">🗑 Apagar todos os dados</button></div>
     </div>
-    <div class="card" style="margin-top:16px"><h2 style="font-size:18px">Como funciona</h2><ul style="line-height:1.9;color:var(--muted)"><li>Registre todos os ovos produzidos em <b>Produção</b>.</li><li>Registre cada saída em <b>Vendas</b>; o estoque é atualizado automaticamente.</li><li>Registre ração e demais despesas em <b>Gastos</b>.</li><li>O <b>lucro</b> do dashboard é faturamento menos gastos.</li><li>O sistema funciona sem internet.</li></ul></div>
+    <div class="card" style="margin-top:16px"><h2 style="font-size:18px">Como funciona</h2><ul style="line-height:1.9;color:var(--muted)"><li>Registre todos os ovos produzidos em <b>Produção</b>.</li><li>Registre cada saída em <b>Vendas</b>; o estoque é atualizado automaticamente.</li><li>Registre ração e demais despesas em <b>Gastos</b>.</li><li>O <b>resultado de caixa</b> do dashboard é faturamento menos gastos.</li><li>O sistema funciona sem internet.</li></ul></div>
   </section>
 </main>
 </div>
 <div class="mobile-nav" id="mobileNav"></div><div class="toast" id="toast"></div>
 
 <script>
-const KEY='granja_caixa_v1';
-let data=JSON.parse(localStorage.getItem(KEY)||'{"expenses":[],"production":[],"sales":[],"consumption":[]}');
+const IS_DEV = new URL('.', location.href).pathname.endsWith('/dev/');
+const KEY = IS_DEV ? 'granja_caixa_dev_v1' : 'granja_caixa_v1';
+const emptyData = () => ({expenses:[], production:[], sales:[], consumption:[]});
+let storageBlocked = false;
+let savedSnapshot = JSON.stringify(emptyData());
 
-if(!data.consumption){
-  data.consumption=[];
+function validateData(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw Error('Estrutura inválida.');
+  const result = emptyData();
+  const number = (v, min=0, integer=false) => {
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < min || (integer && !Number.isSafeInteger(v)))
+      throw Error('Quantidade ou valor inválido.');
+    return v;
+  };
+  const text = v => {
+    if (v === undefined) return '';
+    if (typeof v !== 'string' || v.length > 10000) throw Error('Texto inválido.');
+    return v;
+  };
+  for (const key of Object.keys(result)) {
+    const records = key === 'consumption' && input[key] === undefined ? [] : input[key];
+    if (!Array.isArray(records)) throw Error('Lista de registros inválida.');
+    const ids = new Set();
+    result[key] = records.map(x => {
+      if (!x || typeof x !== 'object') throw Error('Registro inválido.');
+      const id = number(x.id, 1, true);
+      if (ids.has(id)) throw Error('Identificador duplicado.');
+      ids.add(id);
+      if (typeof x.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(x.date)
+          || !Number.isFinite(Date.parse(x.date)) || new Date(x.date).toISOString().slice(0,10) !== x.date)
+        throw Error('Data inválida.');
+      const base = {id, date:x.date};
+      if (key === 'expenses') return {...base, cat:text(x.cat), desc:text(x.desc), qty:number(x.qty ?? 0), value:number(x.value)};
+      if (key === 'production') {
+        const qty = number(x.qty, 1, true), broken = number(x.broken ?? 0, 0, true);
+        if (broken > qty) throw Error('Ovos quebrados acima da produção.');
+        return {...base, qty, broken, obs:text(x.obs)};
+      }
+      if (key === 'consumption') return {...base, type:'ovos', qty:number(x.qty, 1, true)};
+      const type = x.type ?? 'ovos';
+      if (!['ovos', 'animais'].includes(type)) throw Error('Tipo de venda inválido.');
+      const sale = {...base, type, qty:number(x.qty, type === 'ovos' ? 1 : 0, true), value:number(x.value), obs:text(x.obs)};
+      if (type === 'animais') {
+        sale.animal = text(x.animal);
+        if (!sale.animal.trim()) throw Error('Animal não informado.');
+      }
+      return sale;
+    });
+  }
+  return result;
 }
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    const loaded = raw ? validateData(JSON.parse(raw)) : emptyData();
+    savedSnapshot = JSON.stringify(loaded);
+    return loaded;
+  } catch {
+    storageBlocked = true;
+    setTimeout(() => alert('Não foi possível ler os dados salvos. Eles foram preservados. Exporte uma cópia em Dados/Backup antes de restaurar um backup válido.'), 0);
+    return emptyData();
+  }
+}
+let data = loadData();
 const menus=[['dashboard','📊','Dashboard'],['gastos','🌽','Gastos'],['producao','🥚','Produção'],['vendas','💰','Vendas'],['relatorios','📋','Relatórios'],['config','⚙️','Dados/Backup']];
-function save(){localStorage.setItem(KEY,JSON.stringify(data))}
+function save() {
+  try {
+    if (storageBlocked) throw Error('Armazenamento bloqueado para preservar os dados anteriores.');
+    const normalized = validateData(data);
+    const json = JSON.stringify(normalized);
+    localStorage.setItem(KEY, json);
+    savedSnapshot = json;
+    data = normalized;
+    return true;
+  } catch (error) {
+    data = JSON.parse(savedSnapshot);
+    alert('Não foi possível salvar. Nenhuma alteração foi aplicada. ' + error.message);
+    return false;
+  }
+}
 function brl(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
 function dateBR(s){if(!s)return'';let [y,m,d]=s.split('-');return `${d}/${m}/${y}`}
 function today(){
@@ -455,7 +528,7 @@ function markNav(){
 }
 function showPage(id){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');let m=menus.find(x=>x[0]===id);document.getElementById('pageTitle').textContent=m[2];document.getElementById('pageSub').textContent=id==='dashboard'?'Visão geral da sua granja':id==='config'?'Backup e armazenamento local':'Gerencie seus registros';markNav();if(id==='dashboard')renderDashboard();if(id==='gastos')renderExpenses();if(id==='producao')renderProduction();if(id==='vendas')renderSales();if(id==='relatorios')renderReports();window.scrollTo(0,0)}
 function toast(msg){let t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
-function addExpense(e){e.preventDefault();data.expenses.push({id:Date.now(),date:gDate.value,cat:gCat.value,desc:gDesc.value.trim(),qty:Number(gQty.value||0),value:Number(gValue.value)});save();e.target.reset();gDate.value=today();toast('Gasto adicionado!');renderExpenses();renderDashboard()}
+function addExpense(e){e.preventDefault();data.expenses.push({id:Date.now(),date:gDate.value,cat:gCat.value,desc:gDesc.value.trim(),qty:Number(gQty.value||0),value:Number(gValue.value)});if(!save())return;e.target.reset();gDate.value=today();toast('Gasto adicionado!');renderExpenses();renderDashboard()}
 function toggleConsumption(){
   const check=document.getElementById('vConsumptionCheck');
   const type=document.getElementById('vType');
@@ -465,7 +538,6 @@ function toggleConsumption(){
   // Consumo próprio só funciona para ovos
   if(type.value!=='ovos'){
     check.checked=false;
-    return;
   }
 
   if(check.checked){
@@ -517,7 +589,7 @@ function addProduction(e){
      (pObs.value.trim() ? (broken > 0 ? ' - ' : '') + pObs.value.trim() : '')
   });
 
-  save();
+  if(!save())return;
   e.target.reset();
   pDate.value=today();
   toggleBrokenEggs();
@@ -611,7 +683,7 @@ function addSale(e){
     }
   }
 
-  save();
+  if(!save())return;
   e.target.reset();
 
   vDate.value=today();
@@ -624,9 +696,22 @@ function addSale(e){
   renderSales();
   renderDashboard();
 }
-function removeItem(type,id){if(!confirm('Excluir este registro?'))return;data[type]=data[type].filter(x=>x.id!==id);save();toast('Registro excluído.');renderDashboard();if(type==='expenses')renderExpenses();if(type==='production')renderProduction();if(type==='sales')renderSales();if(document.getElementById('relatorios').classList.contains('active'))renderReports()}
+function removeItem(type,id) {
+  if (!['expenses','production','sales','consumption'].includes(type)) return;
+  const item = data[type].find(x => x.id === id);
+  if (!item) return;
+  if (type === 'production' && stock() - (item.qty - (item.broken || 0)) < 0) {
+    toast('Esta produção já foi utilizada. Corrija as vendas ou o consumo antes de excluir.');
+    return;
+  }
+  if (!confirm('Excluir este registro?')) return;
+  data[type] = data[type].filter(x => x.id !== id);
+  if (!save()) return;
+  renderAll();
+  toast('Registro excluído.');
+}
 function inMonth(date,m){return !m||date.startsWith(m)}
-function renderExpenses(){let m=expenseMonth.value;let arr=data.expenses.filter(x=>inMonth(x.date,m)).sort((a,b)=>b.date.localeCompare(a.date));expenseTable.innerHTML=arr.length?arr.map(x=>`<tr><td>${dateBR(x.date)}</td><td><span class="badge">${x.cat}</span></td><td>${esc(x.desc)||'—'}</td><td>${x.qty||'—'}</td><td class="num">${brl(x.value)}</td><td><button class="btn small danger" onclick="removeItem('expenses',${x.id})">Excluir</button></td></tr>`).join(''):`<tr><td colspan="6" class="empty">Nenhum gasto neste mês.</td></tr>`}
+function renderExpenses(){let m=expenseMonth.value;let arr=data.expenses.filter(x=>inMonth(x.date,m)).sort((a,b)=>b.date.localeCompare(a.date));expenseTable.innerHTML=arr.length?arr.map(x=>`<tr><td>${dateBR(x.date)}</td><td><span class="badge">${esc(x.cat)}</span></td><td>${esc(x.desc)||'—'}</td><td>${x.qty||'—'}</td><td class="num">${brl(x.value)}</td><td><button class="btn small danger" onclick="removeItem('expenses',${x.id})">Excluir</button></td></tr>`).join(''):`<tr><td colspan="6" class="empty">Nenhum gasto neste mês.</td></tr>`}
 function renderProduction(){let m=productionMonth.value;let arr=data.production.filter(x=>inMonth(x.date,m)).sort((a,b)=>b.date.localeCompare(a.date));productionTable.innerHTML=arr.length?arr.map(x=>`<tr><td>${dateBR(x.date)}</td><td class="num"><b>${x.qty}</b></td><td>${esc(x.obs)||'—'}</td><td><button class="btn small danger" onclick="removeItem('production',${x.id})">Excluir</button></td></tr>`).join(''):`<tr><td colspan="4" class="empty">Nenhuma produção neste mês.</td></tr>`}
 function renderSales(){
   let m=salesMonth.value;
@@ -789,11 +874,62 @@ function renderReports(){let m=reportMonth.value||monthNow(),ex=data.expenses.fi
     let gastos=ex.reduce((a,x)=>a+x.value,0),
     fat=sa.reduce((a,x)=>a+x.value,0),
     prod=pr.reduce((a,x)=>a+x.qty,0);
-      let cats={};ex.forEach(x=>cats[x.cat]=(cats[x.cat]||0)+x.value);reportBox.innerHTML=`<div class="grid"><div class="card kpi"><div class="label">PRODUÇÃO</div><div class="value blue">${prod} ovos</div></div><div class="card kpi"><div class="label">VENDIDOS</div><div class="value blue">${vend} ovos</div></div><div class="card kpi"><div class="label">FATURAMENTO</div><div class="value green">${brl(fat)}</div></div><div class="card kpi"><div class="label">LUCRO</div><div class="value ${fat-gastos>=0?'green':'red'}">${brl(fat-gastos)}</div></div></div><div class="two" style="margin-top:16px"><div><h3>Gastos por categoria</h3><table class="report-category" ><thead><tr><th>Categoria</th><th class="num">Valor</th></tr></thead><tbody>${Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(x=>`<tr><td>${x[0]}</td><td class="num">${brl(x[1])}</td></tr>`).join('')||'<tr><td colspan="2" class="empty">Sem gastos.</td></tr>'}</tbody></table></div><div><h3>Indicadores</h3><p>Quantidade de vendas: <b>${sa.length}</b></p><p>Ticket médio: <b>${brl(sa.length?fat/sa.length:0)}</b></p><p>Preço médio por ovo vendido: <b>${brl(vend?fatOvos/vend:0)}</b></p><p>Estoque atual: <b>${stock()} ovos</b></p></div></div>`}
+      let cats=Object.create(null);ex.forEach(x=>cats[x.cat]=(cats[x.cat]||0)+x.value);reportBox.innerHTML=`<div class="grid"><div class="card kpi"><div class="label">PRODUÇÃO</div><div class="value blue">${prod} ovos</div></div><div class="card kpi"><div class="label">VENDIDOS</div><div class="value blue">${vend} ovos</div></div><div class="card kpi"><div class="label">FATURAMENTO</div><div class="value green">${brl(fat)}</div></div><div class="card kpi"><div class="label">RESULTADO DE CAIXA</div><div class="value ${fat-gastos>=0?'green':'red'}">${brl(fat-gastos)}</div></div></div><div class="two" style="margin-top:16px"><div><h3>Gastos por categoria</h3><table class="report-category" ><thead><tr><th>Categoria</th><th class="num">Valor</th></tr></thead><tbody>${Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(x=>`<tr><td>${esc(x[0])}</td><td class="num">${brl(x[1])}</td></tr>`).join('')||'<tr><td colspan="2" class="empty">Sem gastos.</td></tr>'}</tbody></table></div><div><h3>Indicadores</h3><p>Quantidade de vendas: <b>${sa.length}</b></p><p>Ticket médio: <b>${brl(sa.length?fat/sa.length:0)}</b></p><p>Preço médio por ovo vendido: <b>${brl(vend?fatOvos/vend:0)}</b></p><p>Estoque atual: <b>${stock()} ovos</b></p></div></div>`}
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function exportData(){let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`backup-granja-${today()}.json`;a.click();URL.revokeObjectURL(a.href);toast('Backup exportado!')}
-function importData(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.expenses||!x.production||!x.sales)throw 0;data=x;save();renderAll();toast('Backup importado com sucesso!')}catch{alert('Arquivo de backup inválido.')}};r.readAsText(f);e.target.value=''}
-function clearData(){if(confirm('ATENÇÃO: isso apagará todos os gastos, produções e vendas deste navegador. Deseja continuar?')){data={expenses:[],production:[],sales:[]};save();renderAll();toast('Todos os dados foram apagados.')}}
+function downloadJSON(content, name) {
+  const url = URL.createObjectURL(new Blob([content], {type:'application/json'}));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function exportData() {
+  try {
+    const content = storageBlocked ? localStorage.getItem(KEY) : JSON.stringify(data, null, 2);
+    downloadJSON(content ?? '', `backup-granja${IS_DEV ? '-dev' : ''}-${today()}.json`);
+    toast('Backup exportado!');
+  } catch { alert('Não foi possível exportar os dados deste navegador.'); }
+}
+function importData(e) {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onerror = () => alert('Não foi possível ler o arquivo. Os dados atuais foram preservados.');
+  reader.onload = () => {
+    let candidate;
+    try { candidate = validateData(JSON.parse(reader.result)); }
+    catch (error) { alert('Backup inválido. Os dados atuais foram preservados. ' + error.message); return; }
+    if (!confirm('A importação substituirá os registros deste ambiente. Continuar?')) return;
+    try {
+      const previous = localStorage.getItem(KEY);
+      if (previous !== null) localStorage.setItem(KEY + ':before-import', previous);
+      const json = JSON.stringify(candidate);
+      localStorage.setItem(KEY, json);
+      data = candidate;
+      savedSnapshot = json;
+      storageBlocked = false;
+    } catch { alert('Não foi possível salvar o backup. Os registros atuais foram preservados.'); return; }
+    renderAll();
+    toast('Backup importado com sucesso!');
+  };
+  reader.readAsText(file);
+}
+function exportPreviousBackup() {
+  try {
+    const previous = localStorage.getItem(KEY + ':before-import');
+    if (previous === null) { toast('Nenhuma cópia anterior disponível.'); return; }
+    downloadJSON(previous, `backup-granja-anterior${IS_DEV ? '-dev' : ''}-${today()}.json`);
+  } catch { alert('Não foi possível acessar a cópia anterior.'); }
+}
+function clearData() {
+  if (!confirm('ATENÇÃO: isso apagará todos os registros deste ambiente. Deseja continuar?')) return;
+  data = emptyData();
+  if (!save()) return;
+  renderAll();
+  toast('Todos os dados foram apagados.');
+}
 // Navegação entre abas por deslize
 let touchStartX = 0;
 let touchStartY = 0;
@@ -933,6 +1069,13 @@ document.addEventListener('touchend', function(e) {
 
 });
 function renderAll(){renderDashboard();renderExpenses();renderProduction();renderSales();renderReports()}
+if (IS_DEV) {
+  document.title = 'Granja DEV • Ambiente de testes';
+  const notice = document.createElement('div');
+  notice.textContent = '🧪 DESENVOLVIMENTO — dados de teste separados do app principal';
+  notice.style.cssText = 'background:#fff0b3;color:#503800;padding:12px;text-align:center;font-weight:bold';
+  document.body.prepend(notice);
+}
 nav();setupYears();setDefaults();renderAll();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
