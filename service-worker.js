@@ -1,6 +1,6 @@
 const APP_SCOPE = new URL(self.registration.scope);
 const CACHE_PREFIX = `granja:${APP_SCOPE.pathname}:`;
-const CACHE_NAME = `${CACHE_PREFIX}v5`;
+const CACHE_NAME = `${CACHE_PREFIX}v7`;
 
 function belongsToApp(url) {
     return url.origin === APP_SCOPE.origin
@@ -11,6 +11,7 @@ function belongsToApp(url) {
 const APP_FILES = [
     './',
     './index.html',
+    './report-pdf.js',
     './manifest.json',
     './icon-192.png',
     './icon-512.png'
@@ -24,7 +25,7 @@ self.addEventListener('install', event => {
 
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then(cache => cache.addAll(APP_FILES))
+            .then(cache => cache.addAll(APP_FILES.map(file => new Request(new URL(file, APP_SCOPE), {cache:'reload'}))))
     );
 
     self.skipWaiting();

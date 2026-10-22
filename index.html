@@ -211,6 +211,14 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px
         box-sizing: border-box;
     }
 }
+/* Exportação no final do relatório apenas em telas mobile. */
+.report-export-mobile { display:none; }
+@media (max-width:900px) {
+  .report-meta, .report-export-desktop { display:none; }
+  .report-export-mobile { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:24px; padding-top:18px; border-top:1px solid var(--line); }
+  .report-export-mobile h3 { margin:0; font-size:13px; line-height:1.4; }
+  .report-export-mobile .btn { flex-shrink:0; font-size:13px; }
+}
 </style>
 </head>
 <body>
@@ -373,8 +381,12 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px
 
   <section id="relatorios" class="section">
     <div class="card">
-      <div class="panel-title"><h2>Relatório mensal</h2><input style="max-width:180px" type="month" id="reportMonth" onchange="renderReports()"></div>
+      <div class="panel-title" style="flex-wrap:wrap;gap:12px"><h2>Relatório mensal</h2><div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><label for="reportMonth" style="margin:0">Mês do relatório</label><input style="max-width:180px" type="month" id="reportMonth" onchange="renderReports()"><button type="button" class="btn report-export-desktop" onclick="exportReportPDF()">⬇ Exportar PDF</button></div></div>
       <div id="reportBox"></div>
+      <div class="report-export-mobile">
+        <h3>EXPORTAR RELATÓRIO</h3>
+        <button type="button" class="btn" onclick="exportReportPDF()">⬇ Exportar PDF</button>
+      </div>
     </div>
   </section>
 
@@ -390,6 +402,7 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px
 </div>
 <div class="mobile-nav" id="mobileNav"></div><div class="toast" id="toast"></div>
 
+<script src="report-pdf.js"></script>
 <script>
 const IS_DEV = new URL('.', location.href).pathname.endsWith('/dev/');
 const KEY = IS_DEV ? 'granja_caixa_dev_v1' : 'granja_caixa_v1';
@@ -867,14 +880,71 @@ function drawYearChart(year,pr){
       </div>`;
   }).join('');
 }
-function renderReports(){let m=reportMonth.value||monthNow(),ex=data.expenses.filter(x=>inMonth(x.date,m)),pr=data.production.filter(x=>inMonth(x.date,m)),sa=data.sales.filter(x=>inMonth(x.date,m));
-    let vendasOvos=sa.filter(x=>!x.type || x.type==='ovos');
-    let fatOvos=vendasOvos.reduce((a,x)=>a+x.value,0);
-    let vend=vendasOvos.reduce((a,x)=>a+x.qty,0);
-    let gastos=ex.reduce((a,x)=>a+x.value,0),
-    fat=sa.reduce((a,x)=>a+x.value,0),
-    prod=pr.reduce((a,x)=>a+x.qty,0);
-      let cats=Object.create(null);ex.forEach(x=>cats[x.cat]=(cats[x.cat]||0)+x.value);reportBox.innerHTML=`<div class="grid"><div class="card kpi"><div class="label">PRODUÇÃO</div><div class="value blue">${prod} ovos</div></div><div class="card kpi"><div class="label">VENDIDOS</div><div class="value blue">${vend} ovos</div></div><div class="card kpi"><div class="label">FATURAMENTO</div><div class="value green">${brl(fat)}</div></div><div class="card kpi"><div class="label">LUCRO</div><div class="value ${fat-gastos>=0?'green':'red'}">${brl(fat-gastos)}</div></div></div><div class="two" style="margin-top:16px"><div><h3>Gastos por categoria</h3><table class="report-category" ><thead><tr><th>Categoria</th><th class="num">Valor</th></tr></thead><tbody>${Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(x=>`<tr><td>${esc(x[0])}</td><td class="num">${brl(x[1])}</td></tr>`).join('')||'<tr><td colspan="2" class="empty">Sem gastos.</td></tr>'}</tbody></table></div><div><h3>Indicadores</h3><p>Quantidade de vendas: <b>${sa.length}</b></p><p>Ticket médio: <b>${brl(sa.length?fat/sa.length:0)}</b></p><p>Preço médio por ovo vendido: <b>${brl(vend?fatOvos/vend:0)}</b></p><p>Estoque atual: <b>${stock()} ovos</b></p></div></div>`}
+function getMonthlyReport(month = reportMonth.value || monthNow()) {
+  const expenses = data.expenses.filter(x => inMonth(x.date, month));
+  const production = data.production.filter(x => inMonth(x.date, month));
+  const sales = data.sales.filter(x => inMonth(x.date, month));
+  const consumption = data.consumption.filter(x => inMonth(x.date, month));
+  const eggSales = sales.filter(x => !x.type || x.type === 'ovos');
+  const sum = (items, field) => items.reduce((total, x) => total + (x[field] || 0), 0);
+  const categories = Object.create(null);
+  expenses.forEach(x => categories[x.cat] = (categories[x.cat] || 0) + x.value);
+  const revenue = sum(sales, 'value'), spending = sum(expenses, 'value');
+  const sold = sum(eggSales, 'qty'), produced = sum(production, 'qty'), broken = sum(production, 'broken');
+  return {
+    month,
+    period: new Date(Number(month.slice(0,4)), Number(month.slice(5,7)) - 1, 1).toLocaleDateString('pt-BR', {month:'long', year:'numeric'}),
+    emittedAt: new Date().toLocaleString('pt-BR'),
+    isDev: IS_DEV,
+    produced, sold, broken, consumed:sum(consumption, 'qty'),
+    revenue, spending, profit:revenue-spending, stock:stock(),
+    saleCount:sales.length,
+    ticket:sales.length ? revenue / sales.length : 0,
+    eggPrice:sold ? sum(eggSales, 'value') / sold : 0,
+    usable:produced-broken,
+    categories:Object.entries(categories).sort((a,b) => b[1]-a[1])
+  };
+}
+function renderReports() {
+  const r = getMonthlyReport();
+  const qty = n => n.toLocaleString('pt-BR');
+  const cards = [
+    ['PRODUÇÃO', qty(r.produced) + ' ovos', 'blue'],
+    ['VENDIDOS', qty(r.sold) + ' ovos', 'blue'],
+    ['OVOS QUEBRADOS', qty(r.broken) + ' ovos', 'orange'],
+    ['CONSUMO PRÓPRIO', qty(r.consumed) + ' ovos', 'orange'],
+    ['FATURAMENTO', brl(r.revenue), 'green'],
+    ['GASTOS', brl(r.spending), 'red'],
+    ['LUCRO', brl(r.profit), r.profit >= 0 ? 'green' : 'red'],
+    ['ESTOQUE ATUAL', qty(r.stock) + ' ovos', 'blue']
+  ];
+  reportBox.innerHTML = `
+    <p class="report-meta" style="color:var(--muted);margin-top:0"><b>Período:</b> ${esc(r.period)} · <b>Atualizado em:</b> ${esc(r.emittedAt)}</p>
+    <div class="grid">${cards.map(([label,value,color]) => `<div class="card kpi"><div class="label">${label}</div><div class="value ${color}">${value}</div></div>`).join('')}</div>
+    <div class="two" style="margin-top:16px">
+      <div><h3>Gastos por categoria</h3><table class="report-category"><thead><tr><th>Categoria</th><th class="num">Valor</th></tr></thead><tbody>
+        ${r.categories.map(([name,value]) => `<tr><td>${esc(name)}</td><td class="num">${brl(value)}</td></tr>`).join('') || '<tr><td colspan="2" class="empty">Sem gastos neste mês.</td></tr>'}
+        <tr><td><b>Total de gastos</b></td><td class="num"><b>${brl(r.spending)}</b></td></tr>
+      </tbody></table></div>
+      <div><h3>Indicadores</h3><p>Quantidade de vendas: <b>${qty(r.saleCount)}</b></p><p>Ticket médio: <b>${brl(r.ticket)}</b></p><p>Preço médio por ovo vendido: <b>${brl(r.eggPrice)}</b></p><p>Produção aproveitável: <b>${qty(r.usable)} ovos</b></p><p style="color:var(--muted);font-size:13px">Produção, vendas, quebras, consumo e valores se referem ao mês selecionado. O estoque atual considera todos os registros. Lucro = faturamento − gastos.</p></div>
+    </div>`;
+}
+function exportReportPDF() {
+  if (storageBlocked) { alert('Restaure os dados antes de exportar o relatório.'); return; }
+  try {
+    const report = getMonthlyReport();
+    const pdf = createGranjaReportPDF(report);
+    const url = URL.createObjectURL(new Blob([pdf], {type:'application/pdf'}));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `relatorio-granja${IS_DEV ? '-dev' : ''}-${report.month}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    toast('PDF gerado! Confira os downloads do navegador.');
+  } catch { alert('Não foi possível gerar o PDF. Atualize o aplicativo e tente novamente.'); }
+}
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function downloadJSON(content, name) {
   const url = URL.createObjectURL(new Blob([content], {type:'application/json'}));

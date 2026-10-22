@@ -36,3 +36,11 @@ O workflow lê as duas branches em cada execução; preserve a branch desenvolvi
 ## Verificação local
 
 Executar `node --test tests/*.test.cjs` para testar regras e isolamento do service worker. Os testes de navegador usam Playwright disponível no ambiente e Chromium do sistema: `node tests/browser.cjs`. Eles executam um servidor temporário local e usam somente dados fictícios.
+
+## Relatório mensal e PDF
+
+A aba Relatórios mostra produção, vendidos, ovos quebrados, consumo próprio, faturamento, gastos, lucro e estoque atual. Quebras e consumo respeitam o mês selecionado; o estoque atual continua considerando todo o histórico.
+
+O botão Exportar PDF baixa um documento A4 com cabeçalho, período, data/hora de emissão do dispositivo, cartões, indicadores, categorias de gastos, total e páginas numeradas. O arquivo é gerado localmente e funciona offline após atualizar o app. A produção só recebe o gerador após o merge na main.
+
+Verificação adicional: `node tests/report-browser.cjs` testa o download no Chromium, o relatório no tamanho de tela de celular e o funcionamento offline. Os PDFs salvos por esse teste contêm somente dados fictícios.
